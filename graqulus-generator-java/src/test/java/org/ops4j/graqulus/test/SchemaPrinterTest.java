@@ -73,7 +73,8 @@ public class SchemaPrinterTest {
         interfaceModel.setInterfaceType(character);
         interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
-        interfaceModel.setFieldModels(character.getFieldDefinitions().stream().map(this::toFieldModel).collect(toList()));
+        interfaceModel
+                .setFieldModels(character.getFieldDefinitions().stream().map(this::toFieldModel).collect(toList()));
 
         TemplateEngine templateEngine = new TemplateEngine();
         String javaInterface = templateEngine.renderTemplate("interface", interfaceModel);
@@ -88,7 +89,8 @@ public class SchemaPrinterTest {
         interfaceModel.setInterfaceType(null);
         interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
-        interfaceModel.setFieldModels(character.getFieldDefinitions().stream().map(this::toFieldModel).collect(toList()));
+        interfaceModel
+                .setFieldModels(character.getFieldDefinitions().stream().map(this::toFieldModel).collect(toList()));
 
         TemplateEngine templateEngine = new TemplateEngine();
         String javaInterface = templateEngine.renderTemplate("object", interfaceModel);
@@ -102,7 +104,8 @@ public class SchemaPrinterTest {
         EnumModel interfaceModel = new EnumModel();
         interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
-        interfaceModel.setValueNames(character.getEnumValueDefinitions().stream().map(EnumValueDefinition::getName).collect(toList()));
+        interfaceModel.setValueNames(
+                character.getEnumValueDefinitions().stream().map(EnumValueDefinition::getName).collect(toList()));
 
         TemplateEngine templateEngine = new TemplateEngine();
         String javaInterface = templateEngine.renderTemplate("enum", interfaceModel);
@@ -119,7 +122,6 @@ public class SchemaPrinterTest {
         }
         return fieldModel;
     }
-
 
     private String getJavaType(Type<?> type) {
         if (type instanceof TypeName) {

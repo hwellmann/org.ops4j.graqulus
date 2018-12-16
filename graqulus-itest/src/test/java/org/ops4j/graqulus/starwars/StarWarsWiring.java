@@ -17,21 +17,16 @@ public class StarWarsWiring {
 
     public RuntimeWiring buildRuntimeWiring() {
         return RuntimeWiring.newRuntimeWiring()
-                .type("Query", t -> t
-                        .dataFetcher("hero", this::findHero)
-                        .dataFetcher("human", this::findHuman)
-                        .dataFetcher("droid", this::findDroid))
-                .type(newTypeWiring("Character")
-                        .typeResolver(this::resolveCharacter))
-                .type(newTypeWiring("Droid")
-                        .dataFetcher("friends", this::findFriends))
-                .type(newTypeWiring("Human")
-                        .dataFetcher("friends", this::findFriends))
-                .build();
+                .type("Query",
+                        t -> t.dataFetcher("hero", this::findHero).dataFetcher("human", this::findHuman)
+                                .dataFetcher("droid", this::findDroid))
+                .type(newTypeWiring("Character").typeResolver(this::resolveCharacter))
+                .type(newTypeWiring("Droid").dataFetcher("friends", this::findFriends))
+                .type(newTypeWiring("Human").dataFetcher("friends", this::findFriends)).build();
     }
 
     private Character findHero(DataFetchingEnvironment env) {
-        Episode episode = env.getArgument("episode");        
+        Episode episode = env.getArgument("episode");
         return StarWarsData.findHero(episode);
     }
 
@@ -45,12 +40,12 @@ public class StarWarsWiring {
         String id = env.getArgument("id");
         return StarWarsData.findDroid(id);
     }
-    
+
     private GraphQLObjectType resolveCharacter(TypeResolutionEnvironment env) {
         String typeName = env.getObject().getClass().getSimpleName();
         return env.getSchema().getObjectType(typeName);
     }
-    
+
     private CompletableFuture<List<Character>> findFriends(DataFetchingEnvironment env) {
         Character source = env.getSource();
         List<String> ids = source.getFriends().stream().map(Character::getId).collect(toList());

@@ -11,8 +11,15 @@
 
     <artifactId>graqulus</artifactId>
     <version>0.1.0-SNAPSHOT</version>
-    
+    <packaging>pom</packaging>
+
     <description>Schema-first support for GraphQL</description>
+
+    <modules>
+        <module>graqulus-generator-java</module>
+        <module>graqulus-maven-plugin</module>
+        <module>graqulus-itest</module>
+    </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -53,6 +60,26 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-core</artifactId>
+                <version>3.3.3</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-model</artifactId>
+                <version>3.3.3</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-plugin-api</artifactId>
+                <version>3.3.3</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven.plugin-tools</groupId>
+                <artifactId>maven-plugin-annotations</artifactId>
+                <version>3.4</version>
+            </dependency>
+            <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>3.11.1</version>
@@ -77,6 +104,18 @@
             </dependency>
 
             <dependency>
+                <groupId>org.ops4j.graqulus</groupId>
+                <artifactId>graqulus-generator-java</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.sonatype.plexus</groupId>
+                <artifactId>plexus-build-api</artifactId>
+                <version>0.0.7</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.trimou</groupId>
                 <artifactId>trimou-core</artifactId>
                 <version>2.5.0.Final</version>
@@ -84,56 +123,6 @@
 
         </dependencies>
     </dependencyManagement>
-
-    <dependencies>
-
-        <dependency>
-            <groupId>com.graphql-java</groupId>
-            <artifactId>graphql-java</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.earcam</groupId>
-            <artifactId>io.earcam.unexceptional</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.trimou</groupId>
-            <artifactId>trimou-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-launcher</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-    </dependencies>
 
     <build>
         <pluginManagement>
@@ -152,6 +141,13 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>3.0.1</version>
+                    <configuration>
+                        <doctitle>Graqulus: Schema-first support for GraphQL</doctitle>
+                        <links>
+                            <link>https://docs.oracle.com/javase/8/docs/api</link>
+                            <link>https://javaee.github.io/javaee-spec/javadocs</link>
+                        </links>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -167,11 +163,37 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.8.0</version>
+                    <configuration>
+                        <source>8</source>
+                        <target>8</target>
+                        <compilerArgs>
+                            <arg>-parameters</arg>
+                            <arg>-Xlint:all</arg>
+                            <!-- Causes unknown compilation failure on graqulus-maven-plugin -->
+                            <!-- <arg>-Werror</arg> -->
+                        </compilerArgs>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
                     <version>3.0.0</version>
+                    <executions>
+                        <execution>
+                            <id>validate</id>
+                            <phase>validate</phase>
+                            <configuration>
+                                <configLocation>etc/checkstyle-rules.xml</configLocation>
+                                <encoding>UTF-8</encoding>
+                                <linkXRef>false</linkXRef>
+                                <failsOnError>true</failsOnError>
+                                <violationSeverity>warning</violationSeverity>
+                            </configuration>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
@@ -190,55 +212,14 @@
                     <artifactId>maven-failsafe-plugin</artifactId>
                     <version>2.22.1</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.ops4j.graqulus</groupId>
+                    <artifactId>graqulus-maven-plugin</artifactId>
+                    <version>${project.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
-                    <compilerArgs>
-                        <arg>-parameters</arg>
-                        <arg>-Xlint:all</arg>
-                        <arg>-Werror</arg>
-                    </compilerArgs>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>validate</id>
-                        <phase>validate</phase>
-                        <configuration>
-                            <configLocation>etc/checkstyle-rules.xml</configLocation>
-                            <encoding>UTF-8</encoding>
-                            <linkXRef>false</linkXRef>
-                            <failsOnError>true</failsOnError>
-                            <violationSeverity>warning</violationSeverity>
-                        </configuration>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <doctitle>Graqulus: Schema-first support for GraphQL</doctitle>
-                    <links>
-                        <link>https://docs.oracle.com/javase/8/docs/api</link>
-                        <link>https://javaee.github.io/javaee-spec/javadocs</link>
-                    </links>
-                </configuration>
-            </plugin>
-        </plugins>
     </build>
 
     <url>https://github.com/ops4j/org.ops4j.graqulus</url>

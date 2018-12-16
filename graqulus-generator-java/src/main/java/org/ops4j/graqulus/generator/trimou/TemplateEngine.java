@@ -31,13 +31,10 @@ public class TemplateEngine {
     private String templateDir;
 
     /**
-     * Renders a template of the given name with the given action, using the parameter name
-     * {@code action}.
+     * Renders a template of the given name with the given action, using the parameter name {@code action}.
      *
-     * @param templateName
-     *            template name
-     * @param api
-     *            RAML API model as context object
+     * @param templateName template name
+     * @param api          RAML API model as context object
      * @return rendered template
      */
     public String renderTemplate(String templateName, TypeDefinitionRegistry schema) {
@@ -66,8 +63,7 @@ public class TemplateEngine {
     /**
      * Set the template directory.
      *
-     * @param templateDir
-     *            template directory
+     * @param templateDir template directory
      */
     public void setTemplateDir(String templateDir) {
         this.templateDir = templateDir;
@@ -78,17 +74,15 @@ public class TemplateEngine {
      */
     public MustacheEngine getEngine() {
         if (engine == null) {
-            ClassPathTemplateLocator genericLocator = new ClassPathTemplateLocator(PRIO_CLASS_PATH,
-                TEMPLATE_PATH, TEMPLATE_SUFFIX);
+            ClassPathTemplateLocator genericLocator = new ClassPathTemplateLocator(PRIO_CLASS_PATH, TEMPLATE_PATH,
+                    TEMPLATE_SUFFIX);
             MustacheEngineBuilder builder = MustacheEngineBuilder.newBuilder()
-                .setProperty(EngineConfigurationKey.DEFAULT_FILE_ENCODING,
-                    StandardCharsets.UTF_8.name())
-                .addTemplateLocator(genericLocator)
-                .registerHelpers(HelpersBuilder.builtin().addInclude().addInvoke().addSet()
-                    .addSwitch().addWith().build());
+                    .setProperty(EngineConfigurationKey.DEFAULT_FILE_ENCODING, StandardCharsets.UTF_8.name())
+                    .addTemplateLocator(genericLocator).registerHelpers(
+                            HelpersBuilder.builtin().addInclude().addInvoke().addSet().addSwitch().addWith().build());
             if (templateDir != null) {
                 builder.addTemplateLocator(
-                    new FileSystemTemplateLocator(PRIO_FILE_SYSTEM, templateDir, TEMPLATE_SUFFIX));
+                        new FileSystemTemplateLocator(PRIO_FILE_SYSTEM, templateDir, TEMPLATE_SUFFIX));
             }
             engine = builder.build();
         }

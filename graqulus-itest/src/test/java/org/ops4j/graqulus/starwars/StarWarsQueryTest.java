@@ -24,13 +24,14 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 
 @SuppressWarnings("unchecked")
 public class StarWarsQueryTest {
-    
+
+    private static final String SCHEMA_PATH = "../graqulus-generator-java/src/test/resources/starWarsSchemaAnnotated.graphqls";
     private GraphQL queryRoot;
 
     @BeforeEach
     public void before() {
         SchemaParser parser = new SchemaParser();
-        TypeDefinitionRegistry registry = parser.parse(new File("src/test/resources/starWarsSchemaAnnotated.graphqls"));
+		TypeDefinitionRegistry registry = parser.parse(new File(SCHEMA_PATH));
         SchemaGenerator generator = new SchemaGenerator();
         GraphQLSchema schema = generator.makeExecutableSchema(registry, new StarWarsWiring().buildRuntimeWiring());
         queryRoot = GraphQL.newGraphQL(schema).build();
@@ -38,40 +39,29 @@ public class StarWarsQueryTest {
 
     @Test
     public void artooIsHero() {
-        String query = "query HeroNameQuery {\n" + 
-                "          hero {\n" + 
-                "            name\n" + 
-                "          }\n" + 
-                "        }";
-        
+        String query = "query HeroNameQuery {\n" + "          hero {\n" + "            name\n" + "          }\n"
+                + "        }";
+
         ExecutionInput input = ExecutionInput.newExecutionInput().query(query).build();
         ExecutionResult result = queryRoot.execute(input);
         assertThat(result.<Object>getData()).isNotNull();
-        
+
         Map<String, Object> data = result.getData();
         assertThat(data.get("hero")).isInstanceOf(Map.class);
         Map<String, Object> hero = (Map<String, Object>) data.get("hero");
         assertThat(hero.get("name")).isEqualTo("R2-D2");
     }
-    
+
     @Test
     public void artooWithFriends() {
-        String query = 
-                "        query HeroNameAndFriendsQuery {\n" + 
-                "            hero {\n" + 
-                "                id\n" + 
-                "                name\n" + 
-                "                friends {\n" + 
-                "                    name\n" + 
-                "                }\n" + 
-                "            }\n" + 
-                "        }\n" + 
-                "";
-        
+        String query = "        query HeroNameAndFriendsQuery {\n" + "            hero {\n" + "                id\n"
+                + "                name\n" + "                friends {\n" + "                    name\n"
+                + "                }\n" + "            }\n" + "        }\n" + "";
+
         ExecutionInput input = ExecutionInput.newExecutionInput().query(query).build();
         ExecutionResult result = queryRoot.execute(input);
         assertThat(result.<Object>getData()).isNotNull();
-        
+
         Map<String, Object> data = result.getData();
         assertThat(data.get("hero")).isInstanceOf(Map.class);
         Map<String, Object> hero = (Map<String, Object>) data.get("hero");
@@ -80,65 +70,46 @@ public class StarWarsQueryTest {
 
     @Test
     public void nestedQuery() {
-        String query = 
-                "        query NestedQuery {\n" + 
-                "            hero {\n" + 
-                "                name\n" + 
-                "                friends {\n" + 
-                "                    name\n" + 
-                "                    appearsIn\n" + 
-                "                    friends {\n" + 
-                "                        name\n" + 
-                "                    }\n" + 
-                "                }\n" + 
-                "            }\n" + 
-                "        }";
-        
+        String query = "        query NestedQuery {\n" + "            hero {\n" + "                name\n"
+                + "                friends {\n" + "                    name\n" + "                    appearsIn\n"
+                + "                    friends {\n" + "                        name\n" + "                    }\n"
+                + "                }\n" + "            }\n" + "        }";
+
         ExecutionInput input = ExecutionInput.newExecutionInput().query(query).build();
         ExecutionResult result = queryRoot.execute(input);
         assertThat(result.<Object>getData()).isNotNull();
-        
+
         Map<String, Object> data = result.getData();
         assertThat(data.get("hero")).isInstanceOf(Map.class);
         Map<String, Object> hero = (Map<String, Object>) data.get("hero");
         assertThat(hero.get("name")).isEqualTo("R2-D2");
     }
-    
+
     @Test
     public void nestedQueryBatched() {
-        String query = 
-                "        query NestedQuery {\n" + 
-                "            hero {\n" + 
-                "                name\n" + 
-                "                friends {\n" + 
-                "                    name\n" + 
-                "                    appearsIn\n" + 
-                "                    friends {\n" + 
-                "                        name\n" + 
-                "                    }\n" +
-                "                }\n" + 
-                "            }\n" + 
-                "        }";
-        
-        DataLoader<String, Character> characterDataLoader = DataLoader.newDataLoader(this::loadCharacters);        
-        
-        DataLoaderRegistry dataLoaderRegistry = new DataLoaderRegistry()
-                .register(Character.class.getSimpleName(), characterDataLoader);
-        
-        ExecutionInput input = ExecutionInput.newExecutionInput()
-                .dataLoaderRegistry(dataLoaderRegistry)
-                .query(query).build();
+        String query = "        query NestedQuery {\n" + "            hero {\n" + "                name\n"
+                + "                friends {\n" + "                    name\n" + "                    appearsIn\n"
+                + "                    friends {\n" + "                        name\n" + "                    }\n"
+                + "                }\n" + "            }\n" + "        }";
+
+        DataLoader<String, Character> characterDataLoader = DataLoader.newDataLoader(this::loadCharacters);
+
+        DataLoaderRegistry dataLoaderRegistry = new DataLoaderRegistry().register(Character.class.getSimpleName(),
+                characterDataLoader);
+
+        ExecutionInput input = ExecutionInput.newExecutionInput().dataLoaderRegistry(dataLoaderRegistry).query(query)
+                .build();
         ExecutionResult result = queryRoot.execute(input);
         assertThat(result.<Object>getData()).isNotNull();
-        
+
         Map<String, Object> data = result.getData();
         assertThat(data.get("hero")).isInstanceOf(Map.class);
         Map<String, Object> hero = (Map<String, Object>) data.get("hero");
         assertThat(hero.get("name")).isEqualTo("R2-D2");
     }
-    
+
     private CompletionStage<List<Character>> loadCharacters(List<String> ids) {
         return CompletableFuture.supplyAsync(() -> ids.stream().map(StarWarsData::findCharacter).collect(toList()));
     }
-    
+
 }
