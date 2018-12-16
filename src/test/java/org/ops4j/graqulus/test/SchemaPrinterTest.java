@@ -71,7 +71,7 @@ public class SchemaPrinterTest {
 
         InterfaceModel interfaceModel = new InterfaceModel();
         interfaceModel.setInterfaceType(character);
-        interfaceModel.setPackageName("org.ops4j.japhql.starwars");
+        interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
         interfaceModel.setFieldModels(character.getFieldDefinitions().stream().map(this::toFieldModel).collect(toList()));
 
@@ -86,7 +86,7 @@ public class SchemaPrinterTest {
 
         InterfaceModel interfaceModel = new InterfaceModel();
         interfaceModel.setInterfaceType(null);
-        interfaceModel.setPackageName("org.ops4j.japhql.starwars");
+        interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
         interfaceModel.setFieldModels(character.getFieldDefinitions().stream().map(this::toFieldModel).collect(toList()));
 
@@ -100,7 +100,7 @@ public class SchemaPrinterTest {
         EnumTypeDefinition character = registry.getType("Episode", EnumTypeDefinition.class).get();
 
         EnumModel interfaceModel = new EnumModel();
-        interfaceModel.setPackageName("org.ops4j.japhql.starwars");
+        interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
         interfaceModel.setValueNames(character.getEnumValueDefinitions().stream().map(EnumValueDefinition::getName).collect(toList()));
 
@@ -150,5 +150,4 @@ public class SchemaPrinterTest {
         }
         return gqlName;
     }
-
 }

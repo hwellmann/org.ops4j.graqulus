@@ -13,7 +13,7 @@
     </encoder>
   </appender>
   
-  <!--  log to file test.log  -->
+  <!--  log to file test.logObject  -->
   <appender name="TEST_LOG" class="ch.qos.logback.core.FileAppender">
     <file>test.log</file>
     <encoder>
@@ -25,8 +25,6 @@
     <appender-ref ref="STDOUT"/>
     <appender-ref ref="TEST_LOG"/>
   </root>
-  <logger name="com.etventure.core.cqrs" level="INFO"/>
-  <logger name="org.apache.kafka" level="WARN"/> 
-  <logger name="org.jboss.weld" level="WARN"/> 
+  <logger name="org.ops4j.graqulus" level="INFO"/> 
   
 </configuration>
