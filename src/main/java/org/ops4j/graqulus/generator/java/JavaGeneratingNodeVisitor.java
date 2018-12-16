@@ -37,22 +37,21 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     private TemplateEngine templateEngine;
     private JavaContext context;
 
-    public JavaGeneratingNodeVisitor(JavaContext context) {
-        this.context = context;
-        this.templateEngine = context.getTemplateEngine();
-        this.registry = context.getRegistry();
+    public JavaGeneratingNodeVisitor(JavaContext javaContext) {
+        this.context = javaContext;
+        this.templateEngine = javaContext.getTemplateEngine();
+        this.registry = javaContext.getRegistry();
     }
 
     @Override
-    public TraversalControl visitOperationTypeDefinition(OperationTypeDefinition node, TraverserContext<Node> context) {
+    public TraversalControl visitOperationTypeDefinition(OperationTypeDefinition node, TraverserContext<Node> ctx) {
         String operationType = getJavaType(node.getType());
         rootOperationTypes.add(operationType);
         return TraversalControl.CONTINUE;
     }
 
-
     @Override
-    public TraversalControl visitObjectTypeDefinition(ObjectTypeDefinition node, TraverserContext<Node> context) {
+    public TraversalControl visitObjectTypeDefinition(ObjectTypeDefinition node, TraverserContext<Node> ctx) {
         if (rootOperationTypes.contains(node.getName())) {
             return TraversalControl.CONTINUE;
         }
@@ -60,7 +59,8 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         interfaceModel.setInterfaceType(null);
         interfaceModel.setPackageName(this.context.getConfig().getBasePackage());
         interfaceModel.setTypeName(node.getName());
-        interfaceModel.setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, node)).collect(toList()));
+        interfaceModel
+                .setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, node)).collect(toList()));
         interfaceModel.setInterfaces(node.getImplements().stream().map(this::getJavaType).collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("object", interfaceModel);
@@ -79,12 +79,13 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     }
 
     @Override
-    public TraversalControl visitInterfaceTypeDefinition(InterfaceTypeDefinition node, TraverserContext<Node> context) {
+    public TraversalControl visitInterfaceTypeDefinition(InterfaceTypeDefinition node, TraverserContext<Node> ctx) {
         InterfaceModel interfaceModel = new InterfaceModel();
         interfaceModel.setInterfaceType(node);
         interfaceModel.setPackageName(this.context.getConfig().getBasePackage());
         interfaceModel.setTypeName(node.getName());
-        interfaceModel.setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, null)).collect(toList()));
+        interfaceModel
+                .setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, null)).collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("interface", interfaceModel);
         writeJavaFile(javaInterface, node.getName());
@@ -92,12 +93,13 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     }
 
     @Override
-    public TraversalControl visitEnumTypeDefinition(EnumTypeDefinition node, TraverserContext<Node> context) {
+    public TraversalControl visitEnumTypeDefinition(EnumTypeDefinition node, TraverserContext<Node> ctx) {
 
         EnumModel interfaceModel = new EnumModel();
         interfaceModel.setPackageName(this.context.getConfig().getBasePackage());
         interfaceModel.setTypeName(node.getName());
-        interfaceModel.setValueNames(node.getEnumValueDefinitions().stream().map(EnumValueDefinition::getName).collect(toList()));
+        interfaceModel.setValueNames(
+                node.getEnumValueDefinitions().stream().map(EnumValueDefinition::getName).collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("enum", interfaceModel);
         writeJavaFile(javaInterface, node.getName());
@@ -129,11 +131,12 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         return false;
     }
 
-
     private boolean hasField(Type interfaceType, String fieldName) {
         String interfaceName = getJavaType(interfaceType);
-        InterfaceTypeDefinition interfaceDefinition = registry.getType(interfaceName, InterfaceTypeDefinition.class).get();
-        return interfaceDefinition.getFieldDefinitions().stream().map(FieldDefinition::getName).anyMatch(fieldName::equals);
+        InterfaceTypeDefinition interfaceDefinition = registry.getType(interfaceName, InterfaceTypeDefinition.class)
+                .get();
+        return interfaceDefinition.getFieldDefinitions().stream().map(FieldDefinition::getName)
+                .anyMatch(fieldName::equals);
     }
 
     private String getJavaType(Type<?> type) {

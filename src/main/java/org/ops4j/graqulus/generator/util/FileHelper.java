@@ -17,6 +17,7 @@ public class FileHelper {
 
     /**
      * Checks is the given directory exists and creates it otherwise.
+     *
      * @param dir
      * @throws IOException
      */
@@ -24,8 +25,7 @@ public class FileHelper {
         boolean success;
         if (dir.exists()) {
             success = dir.isDirectory();
-        }
-        else {
+        } else {
             success = dir.mkdirs();
         }
         if (!success) {

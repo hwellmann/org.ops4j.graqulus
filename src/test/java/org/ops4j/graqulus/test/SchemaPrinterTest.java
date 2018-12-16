@@ -14,8 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.ops4j.graqulus.generator.java.EnumModel;
 import org.ops4j.graqulus.generator.java.FieldModel;
 import org.ops4j.graqulus.generator.java.InterfaceModel;
-import org.ops4j.graqulus.generator.java.JavaContext;
-import org.ops4j.graqulus.generator.java.JavaGeneratingNodeVisitor;
 import org.ops4j.graqulus.generator.trimou.TemplateEngine;
 
 import graphql.language.Document;
@@ -24,7 +22,6 @@ import graphql.language.EnumValueDefinition;
 import graphql.language.FieldDefinition;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.ListType;
-import graphql.language.NodeTraverser;
 import graphql.language.NonNullType;
 import graphql.language.ObjectTypeDefinition;
 import graphql.language.ScalarTypeDefinition;
@@ -111,18 +108,6 @@ public class SchemaPrinterTest {
         String javaInterface = templateEngine.renderTemplate("enum", interfaceModel);
         System.out.println(javaInterface);
     }
-
-    @Test
-    public void shouldTraverseDocument() {
-        TemplateEngine templateEngine = new TemplateEngine();
-        JavaContext context = new JavaContext(null);
-        context.setRegistry(registry);
-        context.setTemplateEngine(templateEngine);
-        JavaGeneratingNodeVisitor visitor = new JavaGeneratingNodeVisitor(context);
-        NodeTraverser traverser = new NodeTraverser();
-        traverser.preOrder(visitor, document);
-    }
-
 
     private FieldModel toFieldModel(FieldDefinition fieldDefinition) {
         FieldModel fieldModel = new FieldModel();
