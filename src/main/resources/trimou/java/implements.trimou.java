@@ -1,0 +1,1 @@
+{{#if interfaces}}implements {{#interfaces}}{{this}}{{/interfaces}}{{/if}}
