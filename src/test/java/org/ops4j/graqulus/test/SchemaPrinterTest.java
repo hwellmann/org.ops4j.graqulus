@@ -52,7 +52,7 @@ public class SchemaPrinterTest {
     }
 
     private String readWholeInputStream(InputStream is, Charset charset) {
-        Scanner scanner = new Scanner(is, charset);
+        Scanner scanner = new Scanner(is, charset.name());
         scanner.useDelimiter("\\Z");
         String text = scanner.hasNext() ? scanner.next() : "";
         scanner.close();

@@ -1,5 +1,6 @@
 package org.ops4j.graqulus.generator.java;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.ops4j.graqulus.generator.util.FileHelper.createDirectoryIfNeeded;
 
 import java.io.File;
@@ -53,7 +54,7 @@ public class JavaGenerator {
     }
 
     private void loadSchema() throws IOException {
-        String schemaText = Files.readString(Paths.get(config.getSourceFile()));
+        String schemaText = new String(Files.readAllBytes(Paths.get(config.getSourceFile())), UTF_8);
         Parser parser = new Parser();
         document = parser.parseDocument(schemaText);
         SchemaParser schemaParser = new SchemaParser();

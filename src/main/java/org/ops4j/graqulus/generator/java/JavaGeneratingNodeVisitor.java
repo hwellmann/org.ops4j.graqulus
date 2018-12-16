@@ -1,5 +1,6 @@
 package org.ops4j.graqulus.generator.java;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
@@ -72,7 +73,7 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     private void writeJavaFile(String content, String typeName) {
         Path outputPath = this.context.getPackageDir().toPath().resolve(typeName + ".java");
         try {
-            Files.writeString(outputPath, content);
+            Files.write(outputPath, content.getBytes(UTF_8));
         } catch (IOException exc) {
             throw Exceptional.throwAsUnchecked(exc);
         }
