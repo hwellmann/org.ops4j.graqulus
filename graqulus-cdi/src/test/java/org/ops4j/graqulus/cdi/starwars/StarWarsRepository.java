@@ -7,9 +7,13 @@ import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 
 import org.ops4j.graqulus.cdi.api.BatchLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public class StarWarsRepository {
+    
+    private static Logger log = LoggerFactory.getLogger(StarWarsRepository.class);
 
 	public Character findHero(Episode episode) {
         return StarWarsData.heroes.getOrDefault(episode, StarWarsData.artoo);
@@ -24,13 +28,13 @@ public class StarWarsRepository {
     }
 
     public Character findCharacter(String id) {
-        System.out.println("findCharacter id = " + id);
+        log.debug("findCharacter id = {}", id);
         return StarWarsData.characters.get(id);
     }
 
     @BatchLoader
     public List<Character> findCharacters(List<String> ids) {
-        System.out.println("findCharacter ids = " + ids);
+        log.debug("findCharacter ids = {}", ids);
         return ids.stream().map(this::findCharacter).collect(toList());
     }
 }
