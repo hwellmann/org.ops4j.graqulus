@@ -8,24 +8,27 @@ import org.ops4j.graqulus.cdi.api.Schema;
 
 @Dependent
 @Schema(path = "starWars.graphqls", modelPackage = "org.ops4j.graqulus.cdi.starwars")
-public class StarWarsService {
-	
+public class StarWarsService implements org.ops4j.graqulus.cdi.starwars.Query {
+
 	@Inject
 	private StarWarsRepository repository;
 
-	@Query
+	@Override
+    @Query
 	public Character hero(Episode episode) {
 		return repository.findHero(episode);
 	}
-	
-	@Query
+
+	@Override
+    @Query
 	public Human human(String id) {
 		return repository.findHuman(id);
 	}
-	
-	@Query
+
+	@Override
+    @Query
 	public Droid droid(String id) {
 		return repository.findDroid(id);
 	}
-	
+
 }

@@ -13,6 +13,7 @@ import org.ops4j.graqulus.shared.OperationTypeRegistry;
 import graphql.language.EnumTypeDefinition;
 import graphql.language.EnumValueDefinition;
 import graphql.language.FieldDefinition;
+import graphql.language.InputValueDefinition;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.Node;
 import graphql.language.NodeVisitorStub;
@@ -43,6 +44,7 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     @Override
     public TraversalControl visitObjectTypeDefinition(ObjectTypeDefinition node, TraverserContext<Node> ctx) {
         if (operationTypeRegistry.isOperationType(node)) {
+            generateRootOperation(node);
             return TraversalControl.CONTINUE;
         }
         CompositeModel model = new CompositeModel();
@@ -57,6 +59,19 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         writeJavaFile(javaInterface, node.getName());
 
         return TraversalControl.CONTINUE;
+    }
+
+    private void generateRootOperation(ObjectTypeDefinition node) {
+        CompositeModel model = new CompositeModel();
+        model.setInterfaceType(null);
+        model.setPackageName(this.context.getConfig().getBasePackage());
+        model.setTypeName(node.getName());
+        model.setFieldModels(node.getFieldDefinitions().stream()
+                .map(f -> toFieldModel(f, node)).collect(toList()));
+        model.setInterfaces(node.getImplements().stream().map(typeMapper::toJavaType).collect(toList()));
+
+        String javaInterface = templateEngine.renderTemplate("rootOperation", model);
+        writeJavaFile(javaInterface, node.getName());
     }
 
     private void writeJavaFile(String content, String typeName) {
@@ -104,7 +119,16 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
             fieldModel.setListRequired(true);
         }
         fieldModel.setOverrideRequired(isOverride(fieldDefinition, object));
+        fieldModel.setInputValues(fieldDefinition.getInputValueDefinitions().stream()
+                .map(this::toInputValueModel).collect(toList()));
         return fieldModel;
+    }
+
+    private InputValueModel toInputValueModel(InputValueDefinition inputValueDefinition) {
+        InputValueModel inputValueModel = new InputValueModel();
+        inputValueModel.setFieldName(inputValueDefinition.getName());
+        inputValueModel.setTypeName(typeMapper.toJavaType(inputValueDefinition.getType()));
+        return inputValueModel;
     }
 
     private boolean isOverride(FieldDefinition fieldDefinition, ObjectTypeDefinition object) {

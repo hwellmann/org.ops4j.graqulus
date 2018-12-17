@@ -1,5 +1,7 @@
 package org.ops4j.graqulus.generator.java;
 
+import java.util.List;
+
 import graphql.language.FieldDefinition;
 
 public class FieldModel {
@@ -10,6 +12,7 @@ public class FieldModel {
     private boolean notNullRequired;
     private boolean listRequired;
     private boolean overrideRequired;
+    private List<InputValueModel> inputValues;
 
     public FieldDefinition getFieldDefinition() {
         return fieldDefinition;
@@ -57,6 +60,14 @@ public class FieldModel {
 
     public void setOverrideRequired(boolean overrideRequired) {
         this.overrideRequired = overrideRequired;
+    }
+
+    public List<InputValueModel> getInputValues() {
+        return inputValues;
+    }
+
+    public void setInputValues(List<InputValueModel> inputValues) {
+        this.inputValues = inputValues;
     }
 
     public String getGetterName() {
