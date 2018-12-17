@@ -7,20 +7,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.Vetoed;
 import javax.enterprise.inject.spi.AnnotatedMethod;
 import javax.enterprise.inject.spi.AnnotatedParameter;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.DefinitionException;
 import javax.enterprise.inject.spi.DeploymentException;
+import javax.inject.Inject;
 
 import org.ops4j.graqulus.cdi.api.ExecutionRootFactory;
 import org.ops4j.graqulus.shared.OperationTypeRegistry;
@@ -46,63 +42,20 @@ import graphql.schema.idl.TypeInfo;
 import graphql.schema.idl.TypeRuntimeWiring;
 import io.earcam.unexceptional.Exceptional;
 
-@Vetoed
+@ApplicationScoped
 public class GraqulusExecutor implements ExecutionRootFactory {
 
-    private String schemaPath;
-    private String modelPackage;
-    private Map<String, AnnotatedMethod<?>> queryMethodMap = new HashMap<>();
-    private Map<String, AnnotatedMethod<?>> batchLoaderMap = new HashMap<>();
+    @Inject
+    private BeanManager beanManager;
+
+    @Inject
+    private ClassScanResult scanResult;
+
     private TypeDefinitionRegistry registry;
     private RuntimeWiring runtimeWiring;
     private GraphQLSchema executableSchema;
 
-    private BeanManager beanManager;
     private OperationTypeRegistry operationTypeRegistry;
-
-    public String getSchemaPath() {
-        return schemaPath;
-    }
-
-    public void setSchemaPath(String schemaPath) {
-        this.schemaPath = schemaPath;
-    }
-
-    public String getModelPackage() {
-        return modelPackage;
-    }
-
-    public void setModelPackage(String modelPackage) {
-        this.modelPackage = modelPackage;
-    }
-
-    public void registerQueryMethod(AnnotatedMethod<?> method) {
-        AnnotatedMethod<?> previous = queryMethodMap.putIfAbsent(method.getJavaMember().getName(), method);
-        if (previous != null) {
-            throw new DefinitionException("duplicate query method");
-        }
-    }
-
-    public void registerBatchLoaderMethod(AnnotatedMethod<?> method) {
-        Type returnType = method.getJavaMember().getGenericReturnType();
-        if (returnType instanceof ParameterizedType) {
-            ParameterizedType paramType = (ParameterizedType) returnType;
-            if (!paramType.getRawType().getTypeName().equals(List.class.getName())) {
-                throw new DefinitionException("batch loader method must return java.util.List<T>");
-            }
-            Type itemType = paramType.getActualTypeArguments()[0];
-            Class<?> itemClass = (Class<?>) itemType;
-
-            AnnotatedMethod<?> previous = batchLoaderMap.putIfAbsent(itemClass.getSimpleName(), method);
-            if (previous != null) {
-                throw new DefinitionException("duplicate batch loader method");
-            }
-        }
-    }
-
-    public void setBeanManager(BeanManager beanManager) {
-        this.beanManager = beanManager;
-    }
 
     public void validateSchemaAndWiring() {
         loadAndParseSchema();
@@ -169,7 +122,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     private DataFetcher<?> buildDataFetcher(graphql.language.Type<?> type) {
         TypeInfo typeInfo = TypeInfo.typeInfo(type);
         TypeDefinition<?> typeDef = registry.getType(type).get();
-        AnnotatedMethod<?> batchLoaderMethod = batchLoaderMap.get(typeDef.getName());
+        AnnotatedMethod<?> batchLoaderMethod = scanResult.getBatchLoaderMethod(typeDef.getName());
         if (batchLoaderMethod == null) {
             throw new DeploymentException("No batch loader for type " + typeDef.getName());
         }
@@ -187,7 +140,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     }
 
     private DataFetcher<?> buildDataFetcher(FieldDefinition query) {
-        AnnotatedMethod<?> queryMethod = queryMethodMap.get(query.getName());
+        AnnotatedMethod<?> queryMethod = scanResult.getQueryMethod(query.getName());
         if (queryMethod == null) {
             throw new DeploymentException("No query method for " + query.getName());
         }
@@ -235,7 +188,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         if (valueAsString == null) {
             return null;
         }
-        String javaClassName = String.format("%s.%s", modelPackage, enumType.getName());
+        String javaClassName = String.format("%s.%s", scanResult.getModelPackage(), enumType.getName());
         try {
             Class enumClass = Thread.currentThread().getContextClassLoader().loadClass(javaClassName);
             return Enum.valueOf(enumClass, valueAsString);
@@ -246,6 +199,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private void loadAndParseSchema() {
         ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+        String schemaPath = scanResult.getSchemaPath();
         InputStream is = tccl.getResourceAsStream(schemaPath);
         if (is == null) {
             throw new DefinitionException("No schema resource with path " + schemaPath);
