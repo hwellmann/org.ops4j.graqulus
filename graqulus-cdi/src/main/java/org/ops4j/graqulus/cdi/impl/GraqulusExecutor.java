@@ -189,13 +189,19 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     }
 
     private DataFetcher<?> buildDataFetcher(graphql.language.Type<?> type) {
+        TypeInfo typeInfo = TypeInfo.typeInfo(type);
         TypeDefinition<?> typeDef = registry.getType(type).get();
         AnnotatedMethod<?> batchLoaderMethod = batchLoaderMap.get(typeDef.getName());
         if (batchLoaderMethod == null) {
             throw new DeploymentException("No batch loader for type " + typeDef.getName());
         }
         AsyncBatchLoader<Object> batchLoader = new AsyncBatchLoader<>(beanManager, batchLoaderMethod);
-        return new BatchListDataFetcher<>(batchLoader);
+        String idProperty = "id";
+        if (typeInfo.isList()) {
+            return new BatchListDataFetcher<>(batchLoader, idProperty);
+        } else {
+            return new BatchDataFetcher<>(batchLoader, idProperty);
+        }
     }
 
     private GraphQLObjectType resolveInterface(TypeResolutionEnvironment env) {

@@ -36,6 +36,7 @@ public class StarWarsData {
         luke.setFriends(Arrays.asList(han, leia, threepio, artoo));
         luke.setAppearsIn(Arrays.asList(NEWHOPE, EMPIRE, JEDI));
         luke.setHomePlanet("Tatooine");
+        luke.setFather(vader);
 
         vader.setId("1001");
         vader.setName("Darth Vader");

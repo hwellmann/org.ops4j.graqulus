@@ -34,7 +34,14 @@ public class StarWarsRepository {
 
     @BatchLoader
     public List<Character> findCharacters(List<String> ids) {
-        log.debug("findCharacter ids = {}", ids);
+        log.debug("findCharacters ids = {}", ids);
         return ids.stream().map(this::findCharacter).collect(toList());
     }
+    
+    @BatchLoader
+    public List<Human> findHumans(List<String> ids) {
+        log.debug("findHumans ids = {}", ids);
+        return ids.stream().map(this::findHuman).collect(toList());
+    }
+    
 }

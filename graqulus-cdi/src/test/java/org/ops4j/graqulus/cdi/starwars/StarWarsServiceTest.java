@@ -18,7 +18,7 @@ import graphql.GraphQL;
 
 @EnableWeld
 public class StarWarsServiceTest {
-    
+
     @WeldSetup
     public WeldInitiator weld = WeldInitiator.of(WeldInitiator.createWeld()
             .disableDiscovery()
@@ -84,5 +84,15 @@ public class StarWarsServiceTest {
         Map<String, Object> data = result.getData();
         assertThat(data.toString()).isEqualTo(
                 "{hero={name=Luke Skywalker, friends=[{name=Han Solo}, {name=Leia Organa}, {name=C-3PO}, {name=R2-D2}]}}");
+    }
+
+    @Test
+    public void shouldFindHanWithFriendsAndTheirFathers() {
+        GraphQL root = rootFactory.newRoot();
+        ExecutionResult result = root
+                .execute("{human(id: \"1002\") {name, friends { name, ... on Human { father { name } }}}}");
+        Map<String, Object> data = result.getData();
+        assertThat(data.toString()).isEqualTo(
+                "{human={name=Han Solo, friends=[{name=Luke Skywalker, father={name=Darth Vader}}, {name=Leia Organa, father=null}, {name=R2-D2}]}}");
     }
 }

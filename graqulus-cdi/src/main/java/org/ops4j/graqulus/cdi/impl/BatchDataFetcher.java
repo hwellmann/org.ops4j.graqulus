@@ -1,9 +1,8 @@
 package org.ops4j.graqulus.cdi.impl;
 
-import java.util.List;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
 
 import org.dataloader.BatchLoader;
 
@@ -12,28 +11,25 @@ import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentBuilder;
 import graphql.schema.PropertyDataFetcher;
 
-public class BatchListDataFetcher<T> implements DataFetcher<CompletionStage<List<T>>> {
+public class BatchDataFetcher<T> implements DataFetcher<CompletionStage<T>> {
 
     private BatchLoader<String, T> batchLoader;
     private PropertyDataFetcher<Object> idFetcher;
 
-    public BatchListDataFetcher(BatchLoader<String, T> batchLoader, String idProperty) {
+    public BatchDataFetcher(BatchLoader<String, T> batchLoader, String idProperty) {
         this.batchLoader = batchLoader;
         this.idFetcher = new PropertyDataFetcher<>(idProperty);
     }
 
     @Override
-    public CompletionStage<List<T>> get(DataFetchingEnvironment env) throws Exception {
+    public CompletionStage<T> get(DataFetchingEnvironment env) throws Exception {
         PropertyDataFetcher<Object> refsFetcher = PropertyDataFetcher.fetching(env.getField().getName());
-
-        @SuppressWarnings("unchecked")
-        List<Object> refs = (List<Object>) refsFetcher.get(env);
-        if (refs == null) {
+        Object ref = refsFetcher.get(env);
+        if (ref == null) {
             return CompletableFuture.completedFuture(null);
         }
-
-        List<String> ids = refs.stream().map(ref -> toId(ref, env)).collect(Collectors.toList());
-        return batchLoader.load(ids);
+        String id = toId(ref, env);
+        return batchLoader.load(Collections.singletonList(id)).thenApply(list -> list.get(0));
     }
 
     private String toId(Object ref, DataFetchingEnvironment parentEnv) {

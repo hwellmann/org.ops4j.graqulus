@@ -25,7 +25,7 @@ type Query {
     droid(
         # The non null id of the droid you are interested in
         id: ID!
-    ): Droid
+    ): Droid    
 }
 
 # One of the films in the Star Wars Trilogy
@@ -67,6 +67,8 @@ type Human implements Character {
     homePlanet: String
     # Where are they from and how they came to be who they are.
     secretBackstory : String @deprecated(reason : "We have decided that this is not canon")
+    # The father of this human (null if unknown)
+    father: Human
 }
 
 # A mechanical creature in the Star Wars universe.
