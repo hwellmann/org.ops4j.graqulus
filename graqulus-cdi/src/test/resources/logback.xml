@@ -27,5 +27,6 @@
   </root>
   <logger name="org.ops4j.graqulus" level="INFO"/> 
   <logger name="org.jboss.weld" level="WARN"/> 
+  <logger name="graphql" level="INFO"/> 
   
 </configuration>

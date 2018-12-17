@@ -1,6 +1,12 @@
 package org.ops4j.graqulus.cdi.starwars;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.List;
+
 import javax.enterprise.context.ApplicationScoped;
+
+import org.ops4j.graqulus.cdi.api.BatchLoader;
 
 @ApplicationScoped
 public class StarWarsRepository {
@@ -20,5 +26,11 @@ public class StarWarsRepository {
     public Character findCharacter(String id) {
         System.out.println("findCharacter id = " + id);
         return StarWarsData.characters.get(id);
+    }
+
+    @BatchLoader
+    public List<Character> findCharacters(List<String> ids) {
+        System.out.println("findCharacter ids = " + ids);
+        return ids.stream().map(this::findCharacter).collect(toList());
     }
 }

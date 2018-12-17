@@ -2,7 +2,6 @@ package org.ops4j.graqulus.cdi.impl;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
-import java.awt.List;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -12,7 +11,9 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.Vetoed;
@@ -29,6 +30,9 @@ import graphql.TypeResolutionEnvironment;
 import graphql.language.FieldDefinition;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.ObjectTypeDefinition;
+import graphql.language.OperationTypeDefinition;
+import graphql.language.SchemaDefinition;
+import graphql.language.TypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLArgument;
@@ -40,6 +44,7 @@ import graphql.schema.idl.RuntimeWiring.Builder;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.idl.TypeInfo;
 import graphql.schema.idl.TypeRuntimeWiring;
 import io.earcam.unexceptional.Exceptional;
 
@@ -47,6 +52,8 @@ import io.earcam.unexceptional.Exceptional;
 public class GraqulusExecutor implements ExecutionRootFactory {
 
     public static final String QUERY = "Query";
+    public static final String MUTATION = "Mutation";
+    public static final String SUBSCRIPTION = "Subscription";
 
     private String schemaPath;
     private String modelPackage;
@@ -57,6 +64,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     private GraphQLSchema executableSchema;
 
     private BeanManager beanManager;
+    private Map<String, String> operationTypeMap;
 
     public String getSchemaPath() {
         return schemaPath;
@@ -81,12 +89,12 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         }
     }
 
-    public void registerBatchLoader(AnnotatedMethod<?> method) {
+    public void registerBatchLoaderMethod(AnnotatedMethod<?> method) {
         Type returnType = method.getJavaMember().getGenericReturnType();
         if (returnType instanceof ParameterizedType) {
             ParameterizedType paramType = (ParameterizedType) returnType;
             if (!paramType.getRawType().getTypeName().equals(List.class.getName())) {
-                throw new DefinitionException("batch loader method must return List<T>");
+                throw new DefinitionException("batch loader method must return java.util.List<T>");
             }
             Type itemType = paramType.getActualTypeArguments()[0];
             Class<?> itemClass = (Class<?>) itemType;
@@ -104,21 +112,29 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     public void validateSchemaAndWiring() {
         loadAndParseSchema();
+        buildOperationTypes();
         buildWiring();
 
         executableSchema = new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring);
     }
 
+    private void buildOperationTypes() {
+        operationTypeMap = new HashMap<>();
+        operationTypeMap.put(QUERY.toLowerCase(), QUERY);
+        operationTypeMap.put(MUTATION.toLowerCase(), MUTATION);
+        operationTypeMap.put(SUBSCRIPTION.toLowerCase(), SUBSCRIPTION);
+        Optional<SchemaDefinition> optSchemaDefinition = registry.schemaDefinition();
+        if (optSchemaDefinition.isPresent()) {
+            for (OperationTypeDefinition op : optSchemaDefinition.get().getOperationTypeDefinitions()) {
+                String name = op.getName();
+                String typeName = TypeInfo.typeInfo(op.getType()).getName();
+                operationTypeMap.put(name, typeName);
+            }
+        }
+    }
+
     private void buildWiring() {
         Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
-
-        TypeRuntimeWiring.Builder queryWiringBuilder = TypeRuntimeWiring.newTypeWiring(QUERY);
-        ObjectTypeDefinition queryType = registry.getType(QUERY, ObjectTypeDefinition.class).get();
-        for (FieldDefinition query : queryType.getFieldDefinitions()) {
-            DataFetcher<?> dataFetcher = buildDataFetcher(query);
-            queryWiringBuilder.dataFetcher(query.getName(), dataFetcher);
-        }
-        runtimeWiringBuilder.type(queryWiringBuilder);
 
         for (InterfaceTypeDefinition interfaceType : registry.getTypes(InterfaceTypeDefinition.class)) {
             TypeRuntimeWiring.Builder interfaceWiringBuilder = newTypeWiring(interfaceType.getName())
@@ -126,7 +142,60 @@ public class GraqulusExecutor implements ExecutionRootFactory {
             runtimeWiringBuilder.type(interfaceWiringBuilder);
         }
 
+        for (ObjectTypeDefinition objectType : registry.getTypes(ObjectTypeDefinition.class)) {
+            if (operationTypeMap.values().contains(objectType.getName())) {
+                runtimeWiringBuilder.type(buildOperationTypeWiring(objectType));
+            } else {
+                addObjectTypeWiring(runtimeWiringBuilder, objectType);
+            }
+        }
+
         runtimeWiring = runtimeWiringBuilder.build();
+    }
+
+    private void addObjectTypeWiring(Builder runtimeWiringBuilder, ObjectTypeDefinition objectType) {
+        TypeRuntimeWiring.Builder objectTypeWiringBuilder = newTypeWiring(objectType.getName());
+        boolean requiresFetcher = false;
+        for (FieldDefinition fieldDef : objectType.getFieldDefinitions()) {
+            if (requiresDataFetcher(fieldDef.getType())) {
+                requiresFetcher = true;
+                DataFetcher<?> dataFetcher = buildDataFetcher(fieldDef.getType());
+                objectTypeWiringBuilder.dataFetcher(fieldDef.getName(), dataFetcher);
+            }
+        }
+        if (requiresFetcher) {
+            runtimeWiringBuilder.type(objectTypeWiringBuilder);
+        }
+    }
+
+    private graphql.schema.idl.TypeRuntimeWiring.Builder buildOperationTypeWiring(ObjectTypeDefinition objectType) {
+        TypeRuntimeWiring.Builder queryWiringBuilder = TypeRuntimeWiring.newTypeWiring(objectType.getName());
+        for (FieldDefinition query : objectType.getFieldDefinitions()) {
+            DataFetcher<?> dataFetcher = buildDataFetcher(query);
+            queryWiringBuilder.dataFetcher(query.getName(), dataFetcher);
+        }
+        return queryWiringBuilder;
+    }
+
+    private boolean requiresDataFetcher(graphql.language.Type<?> type) {
+        TypeDefinition<?> typeDef = registry.getType(type).get();
+        if (typeDef instanceof InterfaceTypeDefinition) {
+            return true;
+        }
+        if (typeDef instanceof ObjectTypeDefinition) {
+            return true;
+        }
+        return false;
+    }
+
+    private DataFetcher<?> buildDataFetcher(graphql.language.Type<?> type) {
+        TypeDefinition<?> typeDef = registry.getType(type).get();
+        AnnotatedMethod<?> batchLoaderMethod = batchLoaderMap.get(typeDef.getName());
+        if (batchLoaderMethod == null) {
+            throw new DeploymentException("No batch loader for type " + typeDef.getName());
+        }
+        AsyncBatchLoader<Object> batchLoader = new AsyncBatchLoader<>(beanManager, batchLoaderMethod);
+        return new BatchListDataFetcher<>(batchLoader);
     }
 
     private GraphQLObjectType resolveInterface(TypeResolutionEnvironment env) {

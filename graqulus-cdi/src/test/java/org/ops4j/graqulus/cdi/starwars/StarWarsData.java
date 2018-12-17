@@ -1,6 +1,7 @@
 package org.ops4j.graqulus.cdi.starwars;
 
 import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.ops4j.graqulus.cdi.starwars.Episode.EMPIRE;
 import static org.ops4j.graqulus.cdi.starwars.Episode.JEDI;
@@ -11,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
+
 
 public class StarWarsData {
 
@@ -74,6 +76,37 @@ public class StarWarsData {
         heroes.put(JEDI, artoo);
 
         characters = Stream.concat(humans.stream(), droids.stream()).collect(toMap(Character::getId, identity()));
+        characters.values().forEach(StarWarsData::friendsToRef);
     }
 
+    public static Human ref(Human human) {
+        Human ref = new Human();
+        ref.setId(human.getId());
+        return ref;
+    }
+
+    public static Droid ref(Droid droid) {
+        Droid ref = new Droid();
+        ref.setId(droid.getId());
+        return ref;
+    }
+
+    public static Character ref(Character character) {
+        if (character instanceof Human) {
+            return ref((Human) character);
+        } else if (character instanceof Droid) {
+            return ref((Droid) character);
+        }
+        return null;
+    }
+
+    public static List<Character> refList(Character... characters) {
+        return Stream.of(characters).map(StarWarsData::ref).collect(toList());
+    }
+    
+    public static Character friendsToRef(Character character) {
+        List<Character> friends = character.getFriends().stream().map(StarWarsData::ref).collect(toList());
+        character.setFriends(friends);
+        return character;
+    }
 }

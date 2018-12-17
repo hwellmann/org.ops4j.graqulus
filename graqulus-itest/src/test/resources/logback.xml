@@ -26,5 +26,6 @@
     <appender-ref ref="TEST_LOG"/>
   </root>
   <logger name="org.ops4j.graqulus" level="INFO"/> 
+  <logger name="graphql" level="INFO"/> 
   
 </configuration>
