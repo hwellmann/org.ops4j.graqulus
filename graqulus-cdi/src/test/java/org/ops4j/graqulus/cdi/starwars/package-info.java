@@ -1,0 +1,1 @@
+package org.ops4j.graqulus.cdi.starwars;

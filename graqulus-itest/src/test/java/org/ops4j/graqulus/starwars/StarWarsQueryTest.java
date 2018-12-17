@@ -31,7 +31,7 @@ public class StarWarsQueryTest {
     @BeforeEach
     public void before() {
         SchemaParser parser = new SchemaParser();
-		TypeDefinitionRegistry registry = parser.parse(new File(SCHEMA_PATH));
+        TypeDefinitionRegistry registry = parser.parse(new File(SCHEMA_PATH));
         SchemaGenerator generator = new SchemaGenerator();
         GraphQLSchema schema = generator.makeExecutableSchema(registry, new StarWarsWiring().buildRuntimeWiring());
         queryRoot = GraphQL.newGraphQL(schema).build();
@@ -39,9 +39,12 @@ public class StarWarsQueryTest {
 
     @Test
     public void artooIsHero() {
-        String query = "query HeroNameQuery {\n" + "          hero {\n" + "            name\n" + "          }\n"
-                + "        }";
-
+        String query = "query HeroNameQuery {\n" + 
+                "          hero {\n" + 
+                "            name\n" + 
+                "          }\n" + 
+                "        }";
+        
         ExecutionInput input = ExecutionInput.newExecutionInput().query(query).build();
         ExecutionResult result = queryRoot.execute(input);
         assertThat(result.<Object>getData()).isNotNull();
@@ -54,10 +57,18 @@ public class StarWarsQueryTest {
 
     @Test
     public void artooWithFriends() {
-        String query = "        query HeroNameAndFriendsQuery {\n" + "            hero {\n" + "                id\n"
-                + "                name\n" + "                friends {\n" + "                    name\n"
-                + "                }\n" + "            }\n" + "        }\n" + "";
-
+        String query = 
+                "        query HeroNameAndFriendsQuery {\n" + 
+                "            hero {\n" + 
+                "                id\n" + 
+                "                name\n" + 
+                "                friends {\n" + 
+                "                    name\n" + 
+                "                }\n" + 
+                "            }\n" + 
+                "        }\n" + 
+                "";
+        
         ExecutionInput input = ExecutionInput.newExecutionInput().query(query).build();
         ExecutionResult result = queryRoot.execute(input);
         assertThat(result.<Object>getData()).isNotNull();
@@ -70,11 +81,20 @@ public class StarWarsQueryTest {
 
     @Test
     public void nestedQuery() {
-        String query = "        query NestedQuery {\n" + "            hero {\n" + "                name\n"
-                + "                friends {\n" + "                    name\n" + "                    appearsIn\n"
-                + "                    friends {\n" + "                        name\n" + "                    }\n"
-                + "                }\n" + "            }\n" + "        }";
-
+        String query = 
+                "        query NestedQuery {\n" + 
+                "            hero {\n" + 
+                "                name\n" + 
+                "                friends {\n" + 
+                "                    name\n" + 
+                "                    appearsIn\n" + 
+                "                    friends {\n" + 
+                "                        name\n" + 
+                "                    }\n" + 
+                "                }\n" + 
+                "            }\n" + 
+                "        }";
+        
         ExecutionInput input = ExecutionInput.newExecutionInput().query(query).build();
         ExecutionResult result = queryRoot.execute(input);
         assertThat(result.<Object>getData()).isNotNull();
@@ -87,18 +107,28 @@ public class StarWarsQueryTest {
 
     @Test
     public void nestedQueryBatched() {
-        String query = "        query NestedQuery {\n" + "            hero {\n" + "                name\n"
-                + "                friends {\n" + "                    name\n" + "                    appearsIn\n"
-                + "                    friends {\n" + "                        name\n" + "                    }\n"
-                + "                }\n" + "            }\n" + "        }";
-
-        DataLoader<String, Character> characterDataLoader = DataLoader.newDataLoader(this::loadCharacters);
-
-        DataLoaderRegistry dataLoaderRegistry = new DataLoaderRegistry().register(Character.class.getSimpleName(),
-                characterDataLoader);
-
-        ExecutionInput input = ExecutionInput.newExecutionInput().dataLoaderRegistry(dataLoaderRegistry).query(query)
-                .build();
+        String query = 
+                "        query NestedQuery {\n" + 
+                "            hero {\n" + 
+                "                name\n" + 
+                "                friends {\n" + 
+                "                    name\n" + 
+                "                    appearsIn\n" + 
+                "                    friends {\n" + 
+                "                        name\n" + 
+                "                    }\n" +
+                "                }\n" + 
+                "            }\n" + 
+                "        }";
+        
+        DataLoader<String, Character> characterDataLoader = DataLoader.newDataLoader(this::loadCharacters);        
+        
+        DataLoaderRegistry dataLoaderRegistry = new DataLoaderRegistry()
+                .register(Character.class.getSimpleName(), characterDataLoader);
+        
+        ExecutionInput input = ExecutionInput.newExecutionInput()
+                .dataLoaderRegistry(dataLoaderRegistry)
+                .query(query).build();
         ExecutionResult result = queryRoot.execute(input);
         assertThat(result.<Object>getData()).isNotNull();
 

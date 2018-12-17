@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<beans bean-discovery-mode="annotated" version="2.0"
+ xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/beans_2_0.xsd">
+ 
+ 
+     <!-- 
+     
+        We need this explicit marker file since this archive contains a CDI extension and would not be considered 
+        as a bean archive otherwise. 
+     
+        See http://docs.jboss.org/cdi/spec/2.0/cdi-spec.html#bean_archive
+     
+     -->
+ 
+</beans> 
