@@ -13,12 +13,12 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.AnnotatedMethod;
 import javax.enterprise.inject.spi.AnnotatedParameter;
-import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.DefinitionException;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
 import org.ops4j.graqulus.cdi.api.ExecutionRootFactory;
+import org.ops4j.graqulus.cdi.api.IdPropertyStrategy;
 import org.ops4j.graqulus.shared.OperationTypeRegistry;
 
 import graphql.GraphQL;
@@ -46,25 +46,44 @@ import io.earcam.unexceptional.Exceptional;
 public class GraqulusExecutor implements ExecutionRootFactory {
 
     @Inject
-    private BeanManager beanManager;
+    private ClassScanResult scanResult;
 
     @Inject
-    private ClassScanResult scanResult;
+    private Instance<Object> instance;
+
+    @Inject
+    private IdPropertyStrategy idPropertyStrategy;
 
     private TypeDefinitionRegistry registry;
     private RuntimeWiring runtimeWiring;
     private GraphQLSchema executableSchema;
-
     private OperationTypeRegistry operationTypeRegistry;
 
     public void validateSchemaAndWiring() {
         loadAndParseSchema();
-        buildWiring();
+        buildRuntimeWiring();
 
         executableSchema = new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring);
     }
 
-    private void buildWiring() {
+    private void loadAndParseSchema() {
+        ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+        String schemaPath = scanResult.getSchemaPath();
+        InputStream is = tccl.getResourceAsStream(schemaPath);
+        if (is == null) {
+            throw new DefinitionException("No schema resource with path " + schemaPath);
+        }
+
+        try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+            SchemaParser parser = new SchemaParser();
+            registry = parser.parse(reader);
+            operationTypeRegistry = new OperationTypeRegistry(registry);
+        } catch (IOException exc) {
+            throw new DefinitionException(exc);
+        }
+    }
+
+    private void buildRuntimeWiring() {
         Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
 
         for (InterfaceTypeDefinition interfaceType : registry.getTypes(InterfaceTypeDefinition.class)) {
@@ -126,11 +145,13 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         if (batchLoaderMethod == null) {
             throw new DeploymentException("No batch loader for type " + typeDef.getName());
         }
-        AsyncBatchLoader<Object> batchLoader = new AsyncBatchLoader<>(beanManager, batchLoaderMethod);
+        Object service = instance.select(batchLoaderMethod.getDeclaringType().getJavaClass()).get();
+        AsyncBatchLoader<Object> batchLoader = new AsyncBatchLoader<>(service, batchLoaderMethod.getJavaMember());
+        String idProperty = idPropertyStrategy.id(typeDef.getName());
         if (typeInfo.isList()) {
-            return new BatchListDataFetcher<>(batchLoader, beanManager);
+            return new BatchListDataFetcher<>(batchLoader, idProperty);
         } else {
-            return new BatchDataFetcher<>(batchLoader, "id");
+            return new BatchDataFetcher<>(batchLoader, idProperty);
         }
     }
 
@@ -155,7 +176,6 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private Object invokeQueryMethod(AnnotatedMethod<?> queryMethod, DataFetchingEnvironment env)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        Instance<Object> instance = beanManager.createInstance();
         Object service = instance.select(queryMethod.getDeclaringType().getJavaClass()).get();
         Object args[] = getInvocationArguments(queryMethod, env);
         return queryMethod.getJavaMember().invoke(service, args);
@@ -194,23 +214,6 @@ public class GraqulusExecutor implements ExecutionRootFactory {
             return Enum.valueOf(enumClass, valueAsString);
         } catch (ClassNotFoundException exc) {
             throw Exceptional.throwAsUnchecked(exc);
-        }
-    }
-
-    private void loadAndParseSchema() {
-        ClassLoader tccl = Thread.currentThread().getContextClassLoader();
-        String schemaPath = scanResult.getSchemaPath();
-        InputStream is = tccl.getResourceAsStream(schemaPath);
-        if (is == null) {
-            throw new DefinitionException("No schema resource with path " + schemaPath);
-        }
-
-        try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-            SchemaParser parser = new SchemaParser();
-            registry = parser.parse(reader);
-            operationTypeRegistry = new OperationTypeRegistry(registry);
-        } catch (IOException exc) {
-            throw new DefinitionException(exc);
         }
     }
 
