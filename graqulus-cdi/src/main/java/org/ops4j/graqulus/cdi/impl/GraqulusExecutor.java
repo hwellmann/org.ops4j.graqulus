@@ -103,7 +103,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         runtimeWiring = runtimeWiringBuilder.build();
     }
 
-    private void addObjectTypeWiring(Builder runtimeWiringBuilder, ObjectTypeDefinition objectType) {
+    private void addObjectTypeWiring(RuntimeWiring.Builder runtimeWiringBuilder, ObjectTypeDefinition objectType) {
         TypeRuntimeWiring.Builder objectTypeWiringBuilder = newTypeWiring(objectType.getName());
         boolean requiresFetcher = false;
         for (FieldDefinition fieldDef : objectType.getFieldDefinitions()) {
@@ -118,7 +118,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         }
     }
 
-    private graphql.schema.idl.TypeRuntimeWiring.Builder buildOperationTypeWiring(ObjectTypeDefinition objectType) {
+    private TypeRuntimeWiring.Builder buildOperationTypeWiring(ObjectTypeDefinition objectType) {
         TypeRuntimeWiring.Builder queryWiringBuilder = TypeRuntimeWiring.newTypeWiring(objectType.getName());
         for (FieldDefinition query : objectType.getFieldDefinitions()) {
             DataFetcher<?> dataFetcher = buildDataFetcher(query);
@@ -165,13 +165,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         if (queryMethod == null) {
             throw new DeploymentException("No query method for " + query.getName());
         }
-        validateParameters(query, queryMethod);
         return env -> invokeQueryMethod(queryMethod, env);
-    }
-
-    private void validateParameters(FieldDefinition query, AnnotatedMethod<?> queryMethod) {
-        // TODO Auto-generated method stub
-
     }
 
     private Object invokeQueryMethod(AnnotatedMethod<?> queryMethod, DataFetchingEnvironment env)
