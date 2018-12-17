@@ -174,11 +174,10 @@ public class GraqulusExecutor implements ExecutionRootFactory {
             throw new DeploymentException("No batch loader for type " + typeDef.getName());
         }
         AsyncBatchLoader<Object> batchLoader = new AsyncBatchLoader<>(beanManager, batchLoaderMethod);
-        String idProperty = "id";
         if (typeInfo.isList()) {
-            return new BatchListDataFetcher<>(batchLoader, idProperty);
+            return new BatchListDataFetcher<>(batchLoader, beanManager);
         } else {
-            return new BatchDataFetcher<>(batchLoader, idProperty);
+            return new BatchDataFetcher<>(batchLoader, "id");
         }
     }
 

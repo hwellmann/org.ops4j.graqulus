@@ -23,7 +23,7 @@ public class StarWarsServiceTest {
     public WeldInitiator weld = WeldInitiator.of(WeldInitiator.createWeld()
             .disableDiscovery()
             .addExtensions(new GraqulusExtension())
-            .addPackages(StarWarsService.class));
+            .addPackages(GraqulusExtension.class, StarWarsService.class));
 
     @Inject
     private ExecutionRootFactory rootFactory;
