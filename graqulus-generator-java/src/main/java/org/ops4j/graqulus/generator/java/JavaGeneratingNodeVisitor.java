@@ -6,10 +6,9 @@ import static java.util.stream.Collectors.toList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.ops4j.graqulus.generator.trimou.TemplateEngine;
+import org.ops4j.graqulus.shared.OperationTypeRegistry;
 
 import graphql.language.EnumTypeDefinition;
 import graphql.language.EnumValueDefinition;
@@ -18,7 +17,6 @@ import graphql.language.InterfaceTypeDefinition;
 import graphql.language.Node;
 import graphql.language.NodeVisitorStub;
 import graphql.language.ObjectTypeDefinition;
-import graphql.language.OperationTypeDefinition;
 import graphql.language.Type;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.util.TraversalControl;
@@ -29,35 +27,30 @@ import io.earcam.unexceptional.Exceptional;
 public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
 
     private TypeDefinitionRegistry registry;
-    private Set<String> rootOperationTypes = new HashSet<>();
     private TemplateEngine templateEngine;
     private JavaContext context;
     private JavaTypeMapper typeMapper;
+    private OperationTypeRegistry operationTypeRegistry;
 
     public JavaGeneratingNodeVisitor(JavaContext javaContext) {
         this.context = javaContext;
         this.templateEngine = javaContext.getTemplateEngine();
         this.registry = javaContext.getRegistry();
+        this.operationTypeRegistry = new OperationTypeRegistry(registry);
         this.typeMapper = new JavaTypeMapper(registry);
     }
 
     @Override
-    public TraversalControl visitOperationTypeDefinition(OperationTypeDefinition node, TraverserContext<Node> ctx) {
-        String operationType = typeMapper.toJavaType(node.getType());
-        rootOperationTypes.add(operationType);
-        return TraversalControl.CONTINUE;
-    }
-
-    @Override
     public TraversalControl visitObjectTypeDefinition(ObjectTypeDefinition node, TraverserContext<Node> ctx) {
-        if (rootOperationTypes.contains(node.getName())) {
+        if (operationTypeRegistry.isOperationType(node)) {
             return TraversalControl.CONTINUE;
         }
         CompositeModel model = new CompositeModel();
         model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
-        model.setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, node)).collect(toList()));
+        model.setFieldModels(node.getFieldDefinitions().stream()
+                .map(f -> toFieldModel(f, node)).collect(toList()));
         model.setInterfaces(node.getImplements().stream().map(typeMapper::toJavaType).collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("object", model);
@@ -81,8 +74,7 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         model.setInterfaceType(node);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
-        model
-                .setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, null)).collect(toList()));
+        model.setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, null)).collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("interface", model);
         writeJavaFile(javaInterface, node.getName());

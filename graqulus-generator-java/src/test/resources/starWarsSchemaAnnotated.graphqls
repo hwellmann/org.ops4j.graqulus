@@ -1,10 +1,3 @@
-#
-# Schemas must have at least a query root type
-#
-schema {
-    query: Query
-}
-
 # This is the type that will be the root of our query, and the
 # entry point into our schema. It gives us the ability to fetch
 # objects by their IDs, as well as to fetch the undisputed hero

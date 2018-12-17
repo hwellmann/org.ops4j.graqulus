@@ -13,8 +13,8 @@
     <dependencies>
 
         <dependency>
-            <groupId>com.graphql-java</groupId>
-            <artifactId>graphql-java</artifactId>
+            <groupId>org.ops4j.graqulus</groupId>
+            <artifactId>graqulus-shared</artifactId>
         </dependency>
 
         <dependency>

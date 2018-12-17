@@ -13,7 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.Vetoed;
@@ -24,14 +23,13 @@ import javax.enterprise.inject.spi.DefinitionException;
 import javax.enterprise.inject.spi.DeploymentException;
 
 import org.ops4j.graqulus.cdi.api.ExecutionRootFactory;
+import org.ops4j.graqulus.shared.OperationTypeRegistry;
 
 import graphql.GraphQL;
 import graphql.TypeResolutionEnvironment;
 import graphql.language.FieldDefinition;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.ObjectTypeDefinition;
-import graphql.language.OperationTypeDefinition;
-import graphql.language.SchemaDefinition;
 import graphql.language.TypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
@@ -51,10 +49,6 @@ import io.earcam.unexceptional.Exceptional;
 @Vetoed
 public class GraqulusExecutor implements ExecutionRootFactory {
 
-    public static final String QUERY = "Query";
-    public static final String MUTATION = "Mutation";
-    public static final String SUBSCRIPTION = "Subscription";
-
     private String schemaPath;
     private String modelPackage;
     private Map<String, AnnotatedMethod<?>> queryMethodMap = new HashMap<>();
@@ -64,7 +58,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     private GraphQLSchema executableSchema;
 
     private BeanManager beanManager;
-    private Map<String, String> operationTypeMap;
+    private OperationTypeRegistry operationTypeRegistry;
 
     public String getSchemaPath() {
         return schemaPath;
@@ -112,25 +106,9 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     public void validateSchemaAndWiring() {
         loadAndParseSchema();
-        buildOperationTypes();
         buildWiring();
 
         executableSchema = new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring);
-    }
-
-    private void buildOperationTypes() {
-        operationTypeMap = new HashMap<>();
-        operationTypeMap.put(QUERY.toLowerCase(), QUERY);
-        operationTypeMap.put(MUTATION.toLowerCase(), MUTATION);
-        operationTypeMap.put(SUBSCRIPTION.toLowerCase(), SUBSCRIPTION);
-        Optional<SchemaDefinition> optSchemaDefinition = registry.schemaDefinition();
-        if (optSchemaDefinition.isPresent()) {
-            for (OperationTypeDefinition op : optSchemaDefinition.get().getOperationTypeDefinitions()) {
-                String name = op.getName();
-                String typeName = TypeInfo.typeInfo(op.getType()).getName();
-                operationTypeMap.put(name, typeName);
-            }
-        }
     }
 
     private void buildWiring() {
@@ -143,7 +121,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         }
 
         for (ObjectTypeDefinition objectType : registry.getTypes(ObjectTypeDefinition.class)) {
-            if (operationTypeMap.values().contains(objectType.getName())) {
+            if (operationTypeRegistry.isOperationType(objectType)) {
                 runtimeWiringBuilder.type(buildOperationTypeWiring(objectType));
             } else {
                 addObjectTypeWiring(runtimeWiringBuilder, objectType);
@@ -277,6 +255,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             SchemaParser parser = new SchemaParser();
             registry = parser.parse(reader);
+            operationTypeRegistry = new OperationTypeRegistry(registry);
         } catch (IOException exc) {
             throw new DefinitionException(exc);
         }

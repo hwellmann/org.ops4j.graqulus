@@ -20,6 +20,7 @@
         <module>graqulus-maven-plugin</module>
         <module>graqulus-itest</module>
         <module>graqulus-cdi</module>
+        <module>graqulus-shared</module>
     </modules>
 
     <properties>
@@ -118,7 +119,19 @@
 
             <dependency>
                 <groupId>org.ops4j.graqulus</groupId>
+                <artifactId>graqulus-cdi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.ops4j.graqulus</groupId>
                 <artifactId>graqulus-generator-java</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.ops4j.graqulus</groupId>
+                <artifactId>graqulus-shared</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
