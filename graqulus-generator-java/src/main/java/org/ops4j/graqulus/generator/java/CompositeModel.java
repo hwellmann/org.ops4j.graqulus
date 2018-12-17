@@ -8,7 +8,7 @@ import java.util.List;
 
 import graphql.language.InterfaceTypeDefinition;
 
-public class InterfaceModel {
+public class CompositeModel {
 
     private String packageName;
 
@@ -22,7 +22,7 @@ public class InterfaceModel {
 
     private List<String> interfaces;
 
-    public InterfaceModel() {
+    public CompositeModel() {
         this.date = ZonedDateTime.now().truncatedTo(SECONDS).format(ISO_OFFSET_DATE_TIME);
     }
 

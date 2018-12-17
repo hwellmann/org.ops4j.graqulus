@@ -53,15 +53,14 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         if (rootOperationTypes.contains(node.getName())) {
             return TraversalControl.CONTINUE;
         }
-        InterfaceModel interfaceModel = new InterfaceModel();
-        interfaceModel.setInterfaceType(null);
-        interfaceModel.setPackageName(this.context.getConfig().getBasePackage());
-        interfaceModel.setTypeName(node.getName());
-        interfaceModel
-                .setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, node)).collect(toList()));
-        interfaceModel.setInterfaces(node.getImplements().stream().map(typeMapper::toJavaType).collect(toList()));
+        CompositeModel model = new CompositeModel();
+        model.setInterfaceType(null);
+        model.setPackageName(this.context.getConfig().getBasePackage());
+        model.setTypeName(node.getName());
+        model.setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, node)).collect(toList()));
+        model.setInterfaces(node.getImplements().stream().map(typeMapper::toJavaType).collect(toList()));
 
-        String javaInterface = templateEngine.renderTemplate("object", interfaceModel);
+        String javaInterface = templateEngine.renderTemplate("object", model);
         writeJavaFile(javaInterface, node.getName());
 
         return TraversalControl.CONTINUE;
@@ -78,14 +77,14 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
 
     @Override
     public TraversalControl visitInterfaceTypeDefinition(InterfaceTypeDefinition node, TraverserContext<Node> ctx) {
-        InterfaceModel interfaceModel = new InterfaceModel();
-        interfaceModel.setInterfaceType(node);
-        interfaceModel.setPackageName(this.context.getConfig().getBasePackage());
-        interfaceModel.setTypeName(node.getName());
-        interfaceModel
+        CompositeModel model = new CompositeModel();
+        model.setInterfaceType(node);
+        model.setPackageName(this.context.getConfig().getBasePackage());
+        model.setTypeName(node.getName());
+        model
                 .setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, null)).collect(toList()));
 
-        String javaInterface = templateEngine.renderTemplate("interface", interfaceModel);
+        String javaInterface = templateEngine.renderTemplate("interface", model);
         writeJavaFile(javaInterface, node.getName());
         return TraversalControl.CONTINUE;
     }
@@ -93,13 +92,13 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     @Override
     public TraversalControl visitEnumTypeDefinition(EnumTypeDefinition node, TraverserContext<Node> ctx) {
 
-        EnumModel interfaceModel = new EnumModel();
-        interfaceModel.setPackageName(this.context.getConfig().getBasePackage());
-        interfaceModel.setTypeName(node.getName());
-        interfaceModel.setValueNames(
+        EnumModel model = new EnumModel();
+        model.setPackageName(this.context.getConfig().getBasePackage());
+        model.setTypeName(node.getName());
+        model.setValueNames(
                 node.getEnumValueDefinitions().stream().map(EnumValueDefinition::getName).collect(toList()));
 
-        String javaInterface = templateEngine.renderTemplate("enum", interfaceModel);
+        String javaInterface = templateEngine.renderTemplate("enum", model);
         writeJavaFile(javaInterface, node.getName());
         return TraversalControl.CONTINUE;
     }
@@ -136,5 +135,4 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         return interfaceDefinition.getFieldDefinitions().stream().map(FieldDefinition::getName)
                 .anyMatch(fieldName::equals);
     }
-
 }

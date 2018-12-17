@@ -13,7 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.ops4j.graqulus.generator.java.EnumModel;
 import org.ops4j.graqulus.generator.java.FieldModel;
-import org.ops4j.graqulus.generator.java.InterfaceModel;
+import org.ops4j.graqulus.generator.java.CompositeModel;
 import org.ops4j.graqulus.generator.trimou.TemplateEngine;
 
 import graphql.language.Document;
@@ -69,7 +69,7 @@ public class SchemaPrinterTest {
     public void shouldExamineInterface() {
         InterfaceTypeDefinition character = registry.getType("Character", InterfaceTypeDefinition.class).get();
 
-        InterfaceModel interfaceModel = new InterfaceModel();
+        CompositeModel interfaceModel = new CompositeModel();
         interfaceModel.setInterfaceType(character);
         interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
@@ -85,7 +85,7 @@ public class SchemaPrinterTest {
     public void shouldExamineObject() {
         ObjectTypeDefinition character = registry.getType("Droid", ObjectTypeDefinition.class).get();
 
-        InterfaceModel interfaceModel = new InterfaceModel();
+        CompositeModel interfaceModel = new CompositeModel();
         interfaceModel.setInterfaceType(null);
         interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
