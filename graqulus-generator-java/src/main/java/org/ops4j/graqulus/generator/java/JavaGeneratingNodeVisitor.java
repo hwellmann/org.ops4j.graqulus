@@ -22,6 +22,7 @@ import graphql.language.ObjectTypeDefinition;
 import graphql.language.Type;
 import graphql.language.UnionTypeDefinition;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.idl.TypeInfo;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import io.earcam.unexceptional.Exceptional;
@@ -100,7 +101,7 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
 
     @Override
     public TraversalControl visitInputObjectTypeDefinition(InputObjectTypeDefinition node,
-            TraverserContext<Node> context) {
+            TraverserContext<Node> ctx) {
         CompositeModel model = new CompositeModel();
         model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
@@ -121,7 +122,7 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         model.setTypeName(node.getName());
         model.setFieldModels(node.getMemberTypes().stream().map(m -> toFieldModel(m)).collect(toList()));
 
-        String javaInterface = templateEngine.renderTemplate("object", model);
+        String javaInterface = templateEngine.renderTemplate("union", model);
         writeJavaFile(javaInterface, node.getName());
 
         return TraversalControl.CONTINUE;
@@ -146,7 +147,7 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         fieldModel.setFieldDefinition(fieldDefinition);
         fieldModel.setFieldName(typeMapper.toJavaVariable(fieldDefinition.getName()));
         fieldModel.setTypeName(typeMapper.toJavaType(fieldDefinition.getType()));
-        if (fieldModel.getTypeName().startsWith("List<")) {
+        if (TypeInfo.typeInfo(fieldDefinition.getType()).isList()) {
             fieldModel.setListRequired(true);
         }
         fieldModel.setOverrideRequired(isOverride(fieldDefinition, object));
@@ -175,7 +176,7 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         FieldModel fieldModel = new FieldModel();
         fieldModel.setFieldName(typeMapper.toJavaVariable(inputValueDefinition.getName()));
         fieldModel.setTypeName(typeMapper.toJavaType(inputValueDefinition.getType()));
-        if (fieldModel.getTypeName().startsWith("List<")) {
+        if (TypeInfo.typeInfo(inputValueDefinition.getType()).isList()) {
             fieldModel.setListRequired(true);
         }
         return fieldModel;
