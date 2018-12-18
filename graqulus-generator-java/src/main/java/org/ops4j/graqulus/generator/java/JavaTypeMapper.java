@@ -61,6 +61,14 @@ public class JavaTypeMapper {
 
     private String mapScalarTypeName(ScalarTypeDefinition scalarType) {
         String gqlName = scalarType.getName();
-        return BUILT_IN_SCALARS.getOrDefault(gqlName, gqlName);
+        String fallback = String.format("String /* %s */", gqlName);
+        return BUILT_IN_SCALARS.getOrDefault(gqlName, fallback);
+    }
+
+    public String toJavaVariable(String name) {
+        if (Constants.JAVA_KEYWORDS.contains(name)) {
+            return "$" + name;
+        }
+        return name;
     }
 }
