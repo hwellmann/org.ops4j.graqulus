@@ -30,7 +30,6 @@
         <dependency>
             <groupId>io.earcam</groupId>
             <artifactId>io.earcam.unexceptional</artifactId>
-            <version>1.0.0</version>
         </dependency>
 
         <dependency>
@@ -92,13 +91,23 @@
                 <artifactId>graqulus-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>generate</id>
+                        <id>starwars</id>
                         <goals>
                             <goal>java-test</goal>
                         </goals>
                         <configuration>
                             <package>org.ops4j.graqulus.starwars</package>
                             <model>${basedir}/../graqulus-generator-java/src/test/resources/starWarsSchemaAnnotated.graphqls</model>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>github</id>
+                        <goals>
+                            <goal>java-test</goal>
+                        </goals>
+                        <configuration>
+                            <package>org.ops4j.graqulus.github</package>
+                            <model>${basedir}/src/test/resources/github.graphqls</model>
                         </configuration>
                     </execution>
                 </executions>

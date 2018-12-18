@@ -11,7 +11,7 @@
 
     <groupId>org.ops4j.graqulus</groupId>
     <artifactId>graqulus-generator-java</artifactId>
-    
+
     <description>Schema-first support for GraphQL</description>
 
     <dependencies>
