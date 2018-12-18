@@ -1,1 +1,1 @@
-{{#if interfaces}}implements {{#interfaces}}{{this}}{{/interfaces}}{{/if}}
+{{#if interfaces}}implements {{#interfaces}}{{this}}{{#iter.hasNext}}, {{/iter.hasNext}}{{/interfaces}}{{/if}}
