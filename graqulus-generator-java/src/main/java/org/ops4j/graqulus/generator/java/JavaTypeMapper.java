@@ -56,7 +56,21 @@ public class JavaTypeMapper {
             ListType listType = (ListType) type;
             return String.format("List<%s>", toJavaType(listType.getType()));
         }
-        throw new IllegalArgumentException("unknown type");
+        throw new IllegalArgumentException(type.getClass().getName());
+    }
+
+    public boolean isListType(Type<?> type) {
+        if (type instanceof TypeName) {
+            return false;
+        }
+        if (type instanceof NonNullType) {
+            NonNullType nonNullType = (NonNullType) type;
+            return isListType(nonNullType.getType());
+        }
+        if (type instanceof ListType) {
+            return true;
+        }
+        throw new IllegalArgumentException(type.getClass().getName());
     }
 
     private String mapScalarTypeName(ScalarTypeDefinition scalarType) {

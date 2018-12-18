@@ -22,7 +22,6 @@ import graphql.language.ObjectTypeDefinition;
 import graphql.language.Type;
 import graphql.language.UnionTypeDefinition;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import graphql.schema.idl.TypeInfo;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import io.earcam.unexceptional.Exceptional;
@@ -147,7 +146,7 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         fieldModel.setFieldDefinition(fieldDefinition);
         fieldModel.setFieldName(typeMapper.toJavaVariable(fieldDefinition.getName()));
         fieldModel.setTypeName(typeMapper.toJavaType(fieldDefinition.getType()));
-        if (TypeInfo.typeInfo(fieldDefinition.getType()).isList()) {
+        if (typeMapper.isListType(fieldDefinition.getType())) {
             fieldModel.setListRequired(true);
         }
         fieldModel.setOverrideRequired(isOverride(fieldDefinition, object));
@@ -176,7 +175,7 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         FieldModel fieldModel = new FieldModel();
         fieldModel.setFieldName(typeMapper.toJavaVariable(inputValueDefinition.getName()));
         fieldModel.setTypeName(typeMapper.toJavaType(inputValueDefinition.getType()));
-        if (TypeInfo.typeInfo(inputValueDefinition.getType()).isList()) {
+        if (typeMapper.isListType(inputValueDefinition.getType())) {
             fieldModel.setListRequired(true);
         }
         return fieldModel;
