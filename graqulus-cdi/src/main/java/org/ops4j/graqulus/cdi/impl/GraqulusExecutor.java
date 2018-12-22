@@ -131,9 +131,13 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     }
 
     private void addScalarType(Builder runtimeWiringBuilder, ScalarTypeDefinition scalarType) {
-        if (scalarType.getSourceLocation() != null) {
+        if (isBuiltIn(scalarType)) {
             runtimeWiringBuilder.scalar(newScalar(GraphQLString).name(scalarType.getName()).build());
         }
+    }
+
+    private boolean isBuiltIn(ScalarTypeDefinition scalarType) {
+        return scalarType.getSourceLocation() != null;
     }
 
     private TypeRuntimeWiring.Builder buildOperationTypeWiring(ObjectTypeDefinition objectType) {
