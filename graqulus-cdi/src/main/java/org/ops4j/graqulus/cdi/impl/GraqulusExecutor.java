@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
@@ -16,7 +15,6 @@ import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.AnnotatedMethod;
-import javax.enterprise.inject.spi.AnnotatedParameter;
 import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.DefinitionException;
 import javax.enterprise.inject.spi.DeploymentException;
@@ -32,14 +30,12 @@ import org.ops4j.graqulus.shared.OperationTypeRegistry;
 
 import graphql.GraphQL;
 import graphql.TypeResolutionEnvironment;
-import graphql.execution.ExecutionStepInfo;
 import graphql.language.FieldDefinition;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.ObjectTypeDefinition;
 import graphql.language.ScalarTypeDefinition;
 import graphql.language.TypeDefinition;
 import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
@@ -62,6 +58,9 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     @Inject
     private IdPropertyStrategy idPropertyStrategy;
 
+    @Inject
+    private MethodInvoker methodInvoker;
+
     private TypeDefinitionRegistry registry;
     private RuntimeWiring runtimeWiring;
     private GraphQLSchema executableSchema;
@@ -72,6 +71,12 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         buildRuntimeWiring();
 
         executableSchema = new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring);
+    }
+
+    @Override
+    public ExecutionRoot newRoot() {
+        GraphQL root = GraphQL.newGraphQL(executableSchema).build();
+        return new ExecutionRootImpl(root, buildDataLoaderRegistry());
     }
 
     private void loadAndParseSchema() {
@@ -177,7 +182,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private DataFetcher<?> buildFieldResolverDataFetcher(Resolver<?> resolver,
             AnnotatedMethod<?> resolverMethod) {
-        return env -> invokeResolverMethod(resolverMethod, resolver, env);
+        return env -> methodInvoker.invokeResolverMethod(resolverMethod, resolver, env);
     }
 
     private boolean requiresDataFetcher(graphql.language.Type<?> type) {
@@ -217,70 +222,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         if (queryMethod == null) {
             throw new DeploymentException("No query method for " + query.getName());
         }
-        return env -> invokeQueryMethod(queryMethod, env);
-    }
-
-    private Object invokeQueryMethod(AnnotatedMethod<?> queryMethod, DataFetchingEnvironment env)
-            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        Object service = instance.select(queryMethod.getDeclaringType().getJavaClass()).get();
-        Object args[] = getInvocationArguments(queryMethod, env);
-        return queryMethod.getJavaMember().invoke(service, args);
-    }
-
-    private Object invokeResolverMethod(AnnotatedMethod<?> resolverMethod, Resolver<?> resolver,
-            DataFetchingEnvironment env)
-            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        Object args[] = getResolverInvocationArguments(resolverMethod, env);
-        return resolverMethod.getJavaMember().invoke(resolver, args);
-    }
-
-    private Object[] getInvocationArguments(AnnotatedMethod<?> queryMethod, DataFetchingEnvironment env) {
-        Object[] args = new Object[queryMethod.getParameters().size()];
-        int pos = 0;
-        for (AnnotatedParameter<?> param : queryMethod.getParameters()) {
-            args[pos] = getInvocationArgument(param, env);
-            pos++;
-        }
-        return args;
-    }
-
-    private Object[] getResolverInvocationArguments(AnnotatedMethod<?> queryMethod, DataFetchingEnvironment env) {
-        Object[] args = new Object[queryMethod.getParameters().size()];
-        int pos = 0;
-        for (AnnotatedParameter<?> param : queryMethod.getParameters()) {
-            if (pos == 0) {
-                args[0] = env.getSource();
-            } else {
-                args[pos] = getInvocationArgument(param, env);
-            }
-            pos++;
-        }
-        return args;
-    }
-
-    private Object getInvocationArgument(AnnotatedParameter<?> param, DataFetchingEnvironment env) {
-        String paramName = param.getJavaParameter().getName();
-        Object arg = findArgumentOnStack(paramName, env);
-        return maybeConvertEnumValue(param, arg);
-    }
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private Object maybeConvertEnumValue(AnnotatedParameter<?> param, Object arg) {
-        if (arg == null) {
-            return null;
-        }
-        Class paramClass = param.getJavaParameter().getType();
-        if (Enum.class.isAssignableFrom(paramClass)) {
-            return Enum.valueOf(paramClass, arg.toString());
-
-        }
-        return arg;
-    }
-
-    @Override
-    public ExecutionRoot newRoot() {
-        GraphQL root = GraphQL.newGraphQL(executableSchema).build();
-        return new ExecutionRootImpl(root, buildDataLoaderRegistry());
+        return env -> methodInvoker.invokeQueryMethod(this, queryMethod, env);
     }
 
     private DataLoaderRegistry buildDataLoaderRegistry() {
@@ -294,26 +236,5 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         Object service = instance.select(method.getDeclaringType().getJavaClass()).get();
         AsyncBatchLoader<Object> batchLoader = new AsyncBatchLoader<>(service, method.getJavaMember());
         return DataLoader.newDataLoader(batchLoader);
-    }
-
-    private <T> T findArgumentOnStack(String name, DataFetchingEnvironment env) {
-        T arg = env.getArgument(name);
-        if (arg == null) {
-            ExecutionStepInfo parent = env.getExecutionStepInfo().getParent();
-            if (parent != null) {
-                arg = findArgumentOnStack(name, parent);
-            }
-        }
-        return arg;
-    }
-
-    private <T> T findArgumentOnStack(String name, ExecutionStepInfo info) {
-        T arg = info.getArgument(name);
-        if (arg == null) {
-            if (info.getParent() != null) {
-                arg = findArgumentOnStack(name, info.getParent());
-            }
-        }
-        return arg;
     }
 }
