@@ -40,8 +40,6 @@ import graphql.language.ScalarTypeDefinition;
 import graphql.language.TypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.GraphQLArgument;
-import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
@@ -51,7 +49,6 @@ import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.TypeInfo;
 import graphql.schema.idl.TypeRuntimeWiring;
-import io.earcam.unexceptional.Exceptional;
 
 @ApplicationScoped
 public class GraqulusExecutor implements ExecutionRootFactory {
@@ -97,12 +94,22 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     private void buildRuntimeWiring() {
         Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
 
+        addInterfaceTypes(runtimeWiringBuilder);
+        addObjectTypes(runtimeWiringBuilder);
+        addScalarTypes(runtimeWiringBuilder);
+
+        runtimeWiring = runtimeWiringBuilder.build();
+    }
+
+    private void addInterfaceTypes(Builder runtimeWiringBuilder) {
         for (InterfaceTypeDefinition interfaceType : registry.getTypes(InterfaceTypeDefinition.class)) {
             TypeRuntimeWiring.Builder interfaceWiringBuilder = newTypeWiring(interfaceType.getName())
                     .typeResolver(this::resolveInterface);
             runtimeWiringBuilder.type(interfaceWiringBuilder);
         }
+    }
 
+    private void addObjectTypes(Builder runtimeWiringBuilder) {
         for (ObjectTypeDefinition objectType : registry.getTypes(ObjectTypeDefinition.class)) {
             if (operationTypeRegistry.isOperationType(objectType)) {
                 runtimeWiringBuilder.type(buildOperationTypeWiring(objectType));
@@ -110,12 +117,12 @@ public class GraqulusExecutor implements ExecutionRootFactory {
                 addObjectTypeWiring(runtimeWiringBuilder, objectType);
             }
         }
+    }
 
+    private void addScalarTypes(Builder runtimeWiringBuilder) {
         for (ScalarTypeDefinition scalarType : registry.scalars().values()) {
             addScalarType(runtimeWiringBuilder, scalarType);
         }
-
-        runtimeWiring = runtimeWiringBuilder.build();
     }
 
     private void addScalarType(Builder runtimeWiringBuilder, ScalarTypeDefinition scalarType) {
@@ -268,32 +275,6 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
         }
         return arg;
-    }
-
-    private Object maybeConvertEnumValue(DataFetchingEnvironment env, String paramName, Object arg) {
-        GraphQLArgument queryArg = env.getFieldDefinition().getArgument(paramName);
-        if (queryArg == null) {
-            return arg;
-        }
-        if (queryArg.getType() instanceof GraphQLEnumType) {
-            GraphQLEnumType enumType = (GraphQLEnumType) queryArg.getType();
-            return convertEnumValue(enumType, (String) arg);
-        }
-        return arg;
-    }
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private Object convertEnumValue(GraphQLEnumType enumType, String valueAsString) {
-        if (valueAsString == null) {
-            return null;
-        }
-        String javaClassName = String.format("%s.%s", scanResult.getModelPackage(), enumType.getName());
-        try {
-            Class enumClass = Thread.currentThread().getContextClassLoader().loadClass(javaClassName);
-            return Enum.valueOf(enumClass, valueAsString);
-        } catch (ClassNotFoundException exc) {
-            throw Exceptional.throwAsUnchecked(exc);
-        }
     }
 
     @Override
