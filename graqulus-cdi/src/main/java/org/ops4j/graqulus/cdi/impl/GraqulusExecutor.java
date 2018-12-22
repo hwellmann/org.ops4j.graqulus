@@ -1,5 +1,7 @@
 package org.ops4j.graqulus.cdi.impl;
 
+import static graphql.Scalars.GraphQLString;
+import static graphql.schema.GraphQLScalarType.newScalar;
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
 import java.io.IOException;
@@ -8,24 +10,33 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.AnnotatedMethod;
 import javax.enterprise.inject.spi.AnnotatedParameter;
+import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.DefinitionException;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
+import org.dataloader.DataLoader;
+import org.dataloader.DataLoaderRegistry;
+import org.ops4j.graqulus.cdi.api.ExecutionRoot;
 import org.ops4j.graqulus.cdi.api.ExecutionRootFactory;
 import org.ops4j.graqulus.cdi.api.IdPropertyStrategy;
+import org.ops4j.graqulus.cdi.api.Resolver;
 import org.ops4j.graqulus.shared.OperationTypeRegistry;
 
 import graphql.GraphQL;
 import graphql.TypeResolutionEnvironment;
+import graphql.execution.ExecutionStepInfo;
 import graphql.language.FieldDefinition;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.ObjectTypeDefinition;
+import graphql.language.ScalarTypeDefinition;
 import graphql.language.TypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
@@ -100,21 +111,16 @@ public class GraqulusExecutor implements ExecutionRootFactory {
             }
         }
 
+        for (ScalarTypeDefinition scalarType : registry.scalars().values()) {
+            addScalarType(runtimeWiringBuilder, scalarType);
+        }
+
         runtimeWiring = runtimeWiringBuilder.build();
     }
 
-    private void addObjectTypeWiring(RuntimeWiring.Builder runtimeWiringBuilder, ObjectTypeDefinition objectType) {
-        TypeRuntimeWiring.Builder objectTypeWiringBuilder = newTypeWiring(objectType.getName());
-        boolean requiresFetcher = false;
-        for (FieldDefinition fieldDef : objectType.getFieldDefinitions()) {
-            if (requiresDataFetcher(fieldDef.getType())) {
-                requiresFetcher = true;
-                DataFetcher<?> dataFetcher = buildDataFetcher(fieldDef.getType());
-                objectTypeWiringBuilder.dataFetcher(fieldDef.getName(), dataFetcher);
-            }
-        }
-        if (requiresFetcher) {
-            runtimeWiringBuilder.type(objectTypeWiringBuilder);
+    private void addScalarType(Builder runtimeWiringBuilder, ScalarTypeDefinition scalarType) {
+        if (scalarType.getSourceLocation() != null) {
+            runtimeWiringBuilder.scalar(newScalar(GraphQLString).name(scalarType.getName()).build());
         }
     }
 
@@ -125,6 +131,44 @@ public class GraqulusExecutor implements ExecutionRootFactory {
             queryWiringBuilder.dataFetcher(query.getName(), dataFetcher);
         }
         return queryWiringBuilder;
+    }
+
+    private void addObjectTypeWiring(RuntimeWiring.Builder runtimeWiringBuilder, ObjectTypeDefinition objectType) {
+        AnnotatedType<?> typeResolver = scanResult.getTypeResolver(objectType.getName());
+        if (typeResolver == null) {
+            return;
+        }
+
+        TypeRuntimeWiring.Builder objectTypeWiringBuilder = newTypeWiring(objectType.getName());
+        Resolver<?> resolver = (Resolver<?>) instance.select(typeResolver.getJavaClass()).get();
+
+        for (FieldDefinition fieldDef : objectType.getFieldDefinitions()) {
+            addFieldDataFetcher(objectTypeWiringBuilder, fieldDef, resolver, typeResolver);
+        }
+
+        runtimeWiringBuilder.type(objectTypeWiringBuilder);
+    }
+
+    private <T> void addFieldDataFetcher(TypeRuntimeWiring.Builder objectTypeWiringBuilder, FieldDefinition fieldDef, Resolver<?> resolver, AnnotatedType<T> resolverType) {
+        String fieldName = fieldDef.getName();
+        Optional<AnnotatedMethod<? super T>> method = resolverType.getMethods().stream().filter(m -> m.getJavaMember().getName().equals(fieldName)).findFirst();
+        if (method.isPresent()) {
+            DataFetcher<?> dataFetcher = buildFieldResolverDataFetcher(resolver, method.get());
+            objectTypeWiringBuilder.dataFetcher(fieldDef.getName(), dataFetcher);
+            return;
+        }
+
+        boolean loadAllById = resolver.loadAllById();
+        List<String> loadById = resolver.loadById();
+        if (requiresDataFetcher(fieldDef.getType()) && (loadAllById || loadById.contains(fieldName))) {
+            DataFetcher<?> dataFetcher = buildDataFetcher(fieldDef.getType(), resolver);
+            objectTypeWiringBuilder.dataFetcher(fieldDef.getName(), dataFetcher);
+        }
+    }
+
+    private DataFetcher<?> buildFieldResolverDataFetcher(Resolver<?> resolver,
+            AnnotatedMethod<?> resolverMethod) {
+        return env -> invokeResolverMethod(resolverMethod, resolver, env);
     }
 
     private boolean requiresDataFetcher(graphql.language.Type<?> type) {
@@ -138,20 +182,19 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         return false;
     }
 
-    private DataFetcher<?> buildDataFetcher(graphql.language.Type<?> type) {
+    private DataFetcher<?> buildDataFetcher(graphql.language.Type<?> type, Resolver<?> resolver) {
         TypeInfo typeInfo = TypeInfo.typeInfo(type);
         TypeDefinition<?> typeDef = registry.getType(type).get();
         AnnotatedMethod<?> batchLoaderMethod = scanResult.getBatchLoaderMethod(typeDef.getName());
         if (batchLoaderMethod == null) {
             throw new DeploymentException("No batch loader for type " + typeDef.getName());
         }
-        Object service = instance.select(batchLoaderMethod.getDeclaringType().getJavaClass()).get();
-        AsyncBatchLoader<Object> batchLoader = new AsyncBatchLoader<>(service, batchLoaderMethod.getJavaMember());
+
         String idProperty = idPropertyStrategy.id(typeDef.getName());
         if (typeInfo.isList()) {
-            return new BatchListDataFetcher<>(batchLoader, idProperty);
+            return new BatchListDataFetcher<>(idProperty);
         } else {
-            return new BatchDataFetcher<>(batchLoader, idProperty);
+            return new BatchDataFetcher<>(idProperty);
         }
     }
 
@@ -175,6 +218,12 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         return queryMethod.getJavaMember().invoke(service, args);
     }
 
+    private Object invokeResolverMethod(AnnotatedMethod<?> resolverMethod, Resolver<?> resolver, DataFetchingEnvironment env)
+            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        Object args[] = getResolverInvocationArguments(resolverMethod, env);
+        return resolverMethod.getJavaMember().invoke(resolver, args);
+    }
+
     private Object[] getInvocationArguments(AnnotatedMethod<?> queryMethod, DataFetchingEnvironment env) {
         Object[] args = new Object[queryMethod.getParameters().size()];
         int pos = 0;
@@ -185,14 +234,50 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         return args;
     }
 
+    private Object[] getResolverInvocationArguments(AnnotatedMethod<?> queryMethod, DataFetchingEnvironment env) {
+        Object[] args = new Object[queryMethod.getParameters().size()];
+        int pos = 0;
+        for (AnnotatedParameter<?> param : queryMethod.getParameters()) {
+            if (pos == 0) {
+                args[0] = env.getSource();
+            }
+            else {
+                args[pos] = getInvocationArgument(param, env);
+            }
+            pos++;
+        }
+        return args;
+    }
+
+
+
     private Object getInvocationArgument(AnnotatedParameter<?> param, DataFetchingEnvironment env) {
         String paramName = param.getJavaParameter().getName();
-        Object rawArg = env.getArgument(paramName);
-        Object arg = rawArg;
+        Object arg = findArgumentOnStack(paramName, env);
+        return maybeConvertEnumValue(param, arg);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private Object maybeConvertEnumValue(AnnotatedParameter<?> param, Object arg) {
+        if (arg == null) {
+            return null;
+        }
+        Class paramClass = param.getJavaParameter().getType();
+        if (Enum.class.isAssignableFrom(paramClass)) {
+            return Enum.valueOf(paramClass, arg.toString());
+
+        }
+        return arg;
+    }
+
+    private Object maybeConvertEnumValue(DataFetchingEnvironment env, String paramName, Object arg) {
         GraphQLArgument queryArg = env.getFieldDefinition().getArgument(paramName);
+        if (queryArg == null) {
+            return arg;
+        }
         if (queryArg.getType() instanceof GraphQLEnumType) {
             GraphQLEnumType enumType = (GraphQLEnumType) queryArg.getType();
-            arg = convertEnumValue(enumType, (String) rawArg);
+            return convertEnumValue(enumType, (String) arg);
         }
         return arg;
     }
@@ -212,7 +297,42 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     }
 
     @Override
-    public GraphQL newRoot() {
-        return GraphQL.newGraphQL(executableSchema).build();
+    public ExecutionRoot newRoot() {
+        GraphQL root = GraphQL.newGraphQL(executableSchema).build();
+        return new ExecutionRootImpl(root, buildDataLoaderRegistry());
+    }
+
+    private DataLoaderRegistry buildDataLoaderRegistry() {
+        DataLoaderRegistry dataLoaderRegistry = new DataLoaderRegistry();
+        scanResult.getBatchLoaderMethods().forEach((type, method) ->
+            dataLoaderRegistry.register(type, buildDataLoader(method)));
+        return dataLoaderRegistry;
+    }
+
+    private DataLoader<?, ?> buildDataLoader(AnnotatedMethod<?> method) {
+        Object service = instance.select(method.getDeclaringType().getJavaClass()).get();
+        AsyncBatchLoader<Object> batchLoader = new AsyncBatchLoader<>(service, method.getJavaMember());
+        return DataLoader.newDataLoader(batchLoader);
+    }
+
+    private <T> T findArgumentOnStack(String name, DataFetchingEnvironment env) {
+        T arg = env.getArgument(name);
+        if (arg == null) {
+            ExecutionStepInfo parent = env.getExecutionStepInfo().getParent();
+            if (parent != null) {
+                arg = findArgumentOnStack(name, parent);
+            }
+        }
+        return arg;
+    }
+
+    private <T> T findArgumentOnStack(String name, ExecutionStepInfo info) {
+        T arg = info.getArgument(name);
+        if (arg == null) {
+            if (info.getParent() != null) {
+                arg = findArgumentOnStack(name, info.getParent());
+            }
+        }
+        return arg;
     }
 }

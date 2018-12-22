@@ -1,23 +1,21 @@
 package org.ops4j.graqulus.cdi.impl;
 
-import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.dataloader.BatchLoader;
+import org.dataloader.DataLoader;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentBuilder;
+import graphql.schema.GraphQLTypeUtil;
 import graphql.schema.PropertyDataFetcher;
 
 public class BatchDataFetcher<T> implements DataFetcher<CompletionStage<T>> {
 
-    private BatchLoader<String, T> batchLoader;
     private PropertyDataFetcher<Object> idFetcher;
 
-    public BatchDataFetcher(BatchLoader<String, T> batchLoader, String idProperty) {
-        this.batchLoader = batchLoader;
+    public BatchDataFetcher(String idProperty) {
         this.idFetcher = new PropertyDataFetcher<>(idProperty);
     }
 
@@ -29,7 +27,9 @@ public class BatchDataFetcher<T> implements DataFetcher<CompletionStage<T>> {
             return CompletableFuture.completedFuture(null);
         }
         String id = toId(ref, env);
-        return batchLoader.load(Collections.singletonList(id)).thenApply(list -> list.get(0));
+        String fieldTypeName = GraphQLTypeUtil.unwrapAll(env.getFieldType()).getName();
+        DataLoader<String, T> dataLoader = env.getDataLoader(fieldTypeName);
+        return dataLoader.load(id);
     }
 
     private String toId(Object ref, DataFetchingEnvironment parentEnv) {

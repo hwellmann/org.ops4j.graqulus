@@ -2,12 +2,14 @@ package org.ops4j.graqulus.cdi.impl;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.enterprise.inject.Vetoed;
 import javax.enterprise.inject.spi.AnnotatedMethod;
+import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.DefinitionException;
 
 @Vetoed
@@ -17,6 +19,7 @@ public class ClassScanResult {
     private String modelPackage;
     private Map<String, AnnotatedMethod<?>> queryMethodMap = new HashMap<>();
     private Map<String, AnnotatedMethod<?>> batchLoaderMap = new HashMap<>();
+    private Map<String, AnnotatedType<?>> typeResolverMap = new HashMap<>();
 
     public String getSchemaPath() {
         return schemaPath;
@@ -58,11 +61,28 @@ public class ClassScanResult {
         }
     }
 
+    public void registerTypeResolver(String typeName, AnnotatedType<?> annotatedType) {
+        AnnotatedType<?> previous = typeResolverMap.putIfAbsent(typeName, annotatedType);
+        if (previous != null) {
+            throw new DefinitionException("duplicate type resolver class");
+        }
+    }
+
     public AnnotatedMethod<?> getBatchLoaderMethod(String typeName) {
         return batchLoaderMap.get(typeName);
+    }
+
+    public Map<String, AnnotatedMethod<?>> getBatchLoaderMethods() {
+        return Collections.unmodifiableMap(batchLoaderMap);
     }
 
     public AnnotatedMethod<?> getQueryMethod(String queryName) {
         return queryMethodMap.get(queryName);
     }
+
+    public AnnotatedType<?> getTypeResolver(String typeName) {
+        return typeResolverMap.get(typeName);
+    }
+
+
 }

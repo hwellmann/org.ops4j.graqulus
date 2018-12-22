@@ -5,20 +5,19 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-import org.dataloader.BatchLoader;
+import org.dataloader.DataLoader;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingEnvironmentBuilder;
+import graphql.schema.GraphQLTypeUtil;
 import graphql.schema.PropertyDataFetcher;
 
 public class BatchListDataFetcher<T> implements DataFetcher<CompletionStage<List<T>>> {
 
-    private BatchLoader<String, T> batchLoader;
     private PropertyDataFetcher<Object> idFetcher;
 
-    public BatchListDataFetcher(BatchLoader<String, T> batchLoader, String idProperty) {
-        this.batchLoader = batchLoader;
+    public BatchListDataFetcher(String idProperty) {
         this.idFetcher = new PropertyDataFetcher<>(idProperty);
     }
 
@@ -33,7 +32,9 @@ public class BatchListDataFetcher<T> implements DataFetcher<CompletionStage<List
         }
 
         List<String> ids = refs.stream().map(ref -> toId(ref, env)).collect(Collectors.toList());
-        return batchLoader.load(ids);
+        String fieldTypeName = GraphQLTypeUtil.unwrapAll(env.getFieldType()).getName();
+        DataLoader<String, T> dataLoader = env.getDataLoader(fieldTypeName);
+        return dataLoader.loadMany(ids);
     }
 
     private String toId(Object ref, DataFetchingEnvironment parentEnv) {
