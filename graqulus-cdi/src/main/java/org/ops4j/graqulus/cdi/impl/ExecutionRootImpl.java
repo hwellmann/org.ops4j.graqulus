@@ -12,31 +12,31 @@ import graphql.GraphQL;
 
 public class ExecutionRootImpl implements ExecutionRoot {
 
-	private Builder builder;
+    private Builder builder;
     private DataLoaderRegistry dataLoaderRegistry;
     private GraphQL root;
 
     public ExecutionRootImpl(GraphQL root, DataLoaderRegistry dataLoaderRegistry) {
-    	this.root = root;
-    	this.dataLoaderRegistry = dataLoaderRegistry;
+        this.root = root;
+        this.dataLoaderRegistry = dataLoaderRegistry;
         this.builder = ExecutionInput.newExecutionInput();
     }
 
     @Override
     public ExecutionRoot query(String query) {
-    	builder.query(query);
+        builder.query(query);
         return this;
     }
 
     @Override
     public ExecutionRoot operationName(String operationName) {
-    	builder.operationName(operationName);
+        builder.operationName(operationName);
         return this;
     }
 
     @Override
     public ExecutionRoot variables(Map<String, Object> variables) {
-    	builder.variables(variables);
+        builder.variables(variables);
         return this;
     }
 

@@ -149,9 +149,11 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         runtimeWiringBuilder.type(objectTypeWiringBuilder);
     }
 
-    private <T> void addFieldDataFetcher(TypeRuntimeWiring.Builder objectTypeWiringBuilder, FieldDefinition fieldDef, Resolver<?> resolver, AnnotatedType<T> resolverType) {
+    private <T> void addFieldDataFetcher(TypeRuntimeWiring.Builder objectTypeWiringBuilder, FieldDefinition fieldDef,
+            Resolver<?> resolver, AnnotatedType<T> resolverType) {
         String fieldName = fieldDef.getName();
-        Optional<AnnotatedMethod<? super T>> method = resolverType.getMethods().stream().filter(m -> m.getJavaMember().getName().equals(fieldName)).findFirst();
+        Optional<AnnotatedMethod<? super T>> method = resolverType.getMethods().stream()
+                .filter(m -> m.getJavaMember().getName().equals(fieldName)).findFirst();
         if (method.isPresent()) {
             DataFetcher<?> dataFetcher = buildFieldResolverDataFetcher(resolver, method.get());
             objectTypeWiringBuilder.dataFetcher(fieldDef.getName(), dataFetcher);
@@ -218,7 +220,8 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         return queryMethod.getJavaMember().invoke(service, args);
     }
 
-    private Object invokeResolverMethod(AnnotatedMethod<?> resolverMethod, Resolver<?> resolver, DataFetchingEnvironment env)
+    private Object invokeResolverMethod(AnnotatedMethod<?> resolverMethod, Resolver<?> resolver,
+            DataFetchingEnvironment env)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         Object args[] = getResolverInvocationArguments(resolverMethod, env);
         return resolverMethod.getJavaMember().invoke(resolver, args);
@@ -240,16 +243,13 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         for (AnnotatedParameter<?> param : queryMethod.getParameters()) {
             if (pos == 0) {
                 args[0] = env.getSource();
-            }
-            else {
+            } else {
                 args[pos] = getInvocationArgument(param, env);
             }
             pos++;
         }
         return args;
     }
-
-
 
     private Object getInvocationArgument(AnnotatedParameter<?> param, DataFetchingEnvironment env) {
         String paramName = param.getJavaParameter().getName();

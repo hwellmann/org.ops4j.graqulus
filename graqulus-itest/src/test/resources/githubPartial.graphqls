@@ -1,0 +1,381 @@
+# The query root of GitHub's GraphQL interface.
+type Query {
+  # Fetches an object given its ID.
+  node(
+    # ID of the object.
+    id: ID!
+  ): Node
+
+  # Lookup nodes by a list of IDs.
+  nodes(
+    # The list of node IDs.
+    ids: [ID!]!
+  ): [Node]!
+
+  # Lookup a given repository by the owner and repository name.
+  repository(
+    # The name of the repository
+    name: String!
+
+    # The login field of a user or organization
+    owner: String!
+  ): Repository
+
+}
+
+# Represents a Git object.
+interface GitObject {
+  # An abbreviated version of the Git object ID
+  abbreviatedOid: String!
+
+  # The HTTP path for this Git object
+  commitResourcePath: URI!
+
+  # The HTTP URL for this Git object
+  commitUrl: URI!
+  id: ID!
+
+  # The Git object ID
+  oid: GitObjectID!
+
+  # The Repository the Git object belongs to
+  repository: Repository!
+}
+
+# Represents an actor in a Git commit (ie. an author or committer).
+type GitActor {
+  # A URL pointing to the author's public avatar.
+  avatarUrl(
+    # The size of the resulting square image.
+    size: Int
+  ): URI!
+
+  # The timestamp of the Git action (authoring or committing).
+  date: GitTimestamp
+
+  # The email in the Git commit.
+  email: String
+
+  # The name in the Git commit.
+  name: String
+
+  # The GitHub user corresponding to the email field. Null if no such user exists.
+  user: User
+}
+
+
+
+# A Git object ID.
+scalar GitObjectID
+
+
+scalar GitTimestamp
+scalar URI
+scalar HTML
+scalar DateTime
+
+# An object with an ID.
+interface Node {
+  # ID of the object.
+  id: ID!
+}
+
+# Information about pagination in a connection.
+type PageInfo {
+  # When paginating forwards, the cursor to continue.
+  endCursor: String
+
+  # When paginating forwards, are there more items?
+  hasNextPage: Boolean!
+
+  # When paginating backwards, are there more items?
+  hasPreviousPage: Boolean!
+
+  # When paginating backwards, the cursor to continue.
+  startCursor: String
+}
+
+
+
+# A repository contains the content for a project.
+type Repository implements Node {
+  # Identifies the date and time when the object was created.
+  createdAt: DateTime!
+
+  # Identifies the primary key from the database.
+  databaseId: Int
+
+  # The Ref associated with the repository's default branch.
+  defaultBranchRef: Ref
+
+  # The description of the repository.
+  description: String
+
+  # The description of the repository rendered to HTML.
+  descriptionHTML: HTML!
+
+  # The number of kilobytes this repository occupies on disk.
+  diskUsage: Int
+
+  # Returns how many forks there are of this repository in the whole network.
+  forkCount: Int!
+
+  # Indicates if the repository has issues feature enabled.
+  hasIssuesEnabled: Boolean!
+
+  # Indicates if the repository has wiki feature enabled.
+  hasWikiEnabled: Boolean!
+
+  # The repository's URL.
+  homepageUrl: URI
+  id: ID!
+
+  # Indicates if the repository is unmaintained.
+  isArchived: Boolean!
+
+  # Identifies if the repository is a fork.
+  isFork: Boolean!
+
+  # Indicates if the repository has been locked or not.
+  isLocked: Boolean!
+
+  # Identifies if the repository is a mirror.
+  isMirror: Boolean!
+
+  # Identifies if the repository is private.
+  isPrivate: Boolean!
+
+  # Whether or not PRs are merged with a merge commit on this repository.
+  mergeCommitAllowed: Boolean!
+
+  # The repository's original mirror URL.
+  mirrorUrl: URI
+
+  # The name of the repository.
+  name: String!
+
+  # The repository's name with owner.
+  nameWithOwner: String!
+
+  # A Git object in the repository
+  object(
+    # A Git revision expression suitable for rev-parse
+    expression: String
+
+    # The Git object ID
+    oid: GitObjectID
+  ): GitObject
+
+  # The repository parent, if this is a fork.
+  parent: Repository
+
+  # The HTTP path listing the repository's projects
+  projectsResourcePath: URI!
+
+  # The HTTP URL listing the repository's projects
+  projectsUrl: URI!
+
+  # Identifies when the repository was last pushed to.
+  pushedAt: DateTime
+
+  # Whether or not rebase-merging is enabled on this repository.
+  rebaseMergeAllowed: Boolean!
+
+  # Fetch a given ref from the repository
+  ref(
+    # The ref to retrieve. Fully qualified matches are checked in order
+    # (`refs/heads/master`) before falling back onto checks for short name matches (`master`).
+    qualifiedName: String!
+  ): Ref
+
+  # Fetch a list of refs from the repository
+  refs(
+    # Returns the elements in the list that come after the specified cursor.
+    after: String
+
+    # Returns the elements in the list that come before the specified cursor.
+    before: String
+
+    # Returns the first _n_ elements from the list.
+    first: Int
+
+    # Returns the last _n_ elements from the list.
+    last: Int
+
+    # A ref name prefix like `refs/heads/`, `refs/tags/`, etc.
+    refPrefix: String!
+  ): RefConnection
+
+  # The HTTP path for this repository
+  resourcePath: URI!
+
+  # Identifies the date and time when the object was last updated.
+  updatedAt: DateTime!
+
+  # The HTTP URL for this repository
+  url: URI!
+}
+
+# Represents a Git reference.
+type Ref implements Node {
+  id: ID!
+
+  # The ref name.
+  name: String!
+
+  # The ref's prefix, such as `refs/heads/` or `refs/tags/`.
+  prefix: String!
+
+  # The repository the ref belongs to.
+  repository: Repository!
+
+  # The object the ref points to.
+  target: GitObject!
+}
+
+# The connection type for Ref.
+type RefConnection {
+  # A list of edges.
+  edges: [RefEdge]
+
+  # A list of nodes.
+  nodes: [Ref]
+
+  # Information to aid in pagination.
+  pageInfo: PageInfo!
+
+  # Identifies the total count of items in the connection.
+  totalCount: Int!
+}
+
+# An edge in a connection.
+type RefEdge {
+  # A cursor for use in pagination.
+  cursor: String!
+
+  # The item at the end of the edge.
+  node: Ref
+}
+
+# Represents a Git commit.
+type Commit implements GitObject & Node {
+  # An abbreviated version of the Git object ID
+  abbreviatedOid: String!
+
+  # The number of additions in this commit.
+  additions: Int!
+
+  # Authorship details of the commit.
+  author: GitActor
+
+  # Check if the committer and the author match.
+  authoredByCommitter: Boolean!
+
+  # The datetime when this commit was authored.
+  authoredDate: DateTime!
+
+  # The number of changed files in this commit.
+  changedFiles: Int!
+
+  # The HTTP path for this Git object
+  commitResourcePath: URI!
+
+  # The HTTP URL for this Git object
+  commitUrl: URI!
+
+  # The datetime when this commit was committed.
+  committedDate: DateTime!
+
+  # Check if commited via GitHub web UI.
+  committedViaWeb: Boolean!
+
+  # Committership details of the commit.
+  committer: GitActor
+
+  # The number of deletions in this commit.
+  deletions: Int!
+
+  id: ID!
+
+  # The Git commit message
+  message: String!
+
+  # The Git commit message body
+  messageBody: String!
+
+  # The commit message body rendered to HTML.
+  messageBodyHTML: HTML!
+
+  # The Git commit message headline
+  messageHeadline: String!
+
+  # The commit message headline rendered to HTML.
+  messageHeadlineHTML: HTML!
+
+  # The Git object ID
+  oid: GitObjectID!
+
+  # The datetime when this commit was pushed.
+  pushedDate: DateTime
+
+  # The Repository this commit belongs to
+  repository: Repository!
+
+  # The HTTP path for this commit
+  resourcePath: URI!
+
+  # The HTTP path for the tree of this commit
+  treeResourcePath: URI!
+
+  # The HTTP URL for the tree of this commit
+  treeUrl: URI!
+
+  # The HTTP URL for this commit
+  url: URI!
+}
+
+
+# A user is an individual's account on GitHub that owns repositories and can make new content.
+type User implements Node {
+  # The user's public profile bio.
+  bio: String
+
+  # The user's public profile bio as HTML.
+  bioHTML: HTML!
+
+  # The user's public profile company.
+  company: String
+
+  # The user's public profile company as HTML.
+  companyHTML: HTML!
+
+  # Identifies the date and time when the object was created.
+  createdAt: DateTime!
+
+  # Identifies the primary key from the database.
+  databaseId: Int
+
+  # The user's publicly visible profile email.
+  email: String!
+
+  id: ID!
+
+  # The username used to login.
+  login: String!
+
+  # The user's public profile name.
+  name: String
+
+  # The HTTP path for this user
+  resourcePath: URI!
+
+  # Identifies the date and time when the object was last updated.
+  updatedAt: DateTime!
+
+  # The HTTP URL for this user
+  url: URI!
+
+  # A URL pointing to the user's public website/blog.
+  websiteUrl: URI
+}
+
