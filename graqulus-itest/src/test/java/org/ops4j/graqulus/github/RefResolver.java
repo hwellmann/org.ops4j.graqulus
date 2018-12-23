@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
 import javax.inject.Inject;
 import javax.json.JsonObject;
 import javax.ws.rs.client.WebTarget;
@@ -16,6 +17,7 @@ import javax.ws.rs.client.WebTarget;
 import org.ops4j.graqulus.cdi.api.ResolveField;
 import org.ops4j.graqulus.cdi.api.Resolver;
 
+@Alternative
 @ApplicationScoped
 public class RefResolver implements Resolver<Ref> {
 

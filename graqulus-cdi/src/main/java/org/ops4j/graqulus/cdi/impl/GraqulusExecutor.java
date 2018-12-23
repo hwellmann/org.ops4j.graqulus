@@ -8,14 +8,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.AnnotatedMethod;
-import javax.enterprise.inject.spi.AnnotatedType;
+import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.DefinitionException;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
@@ -150,13 +152,13 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     }
 
     private void addObjectTypeWiring(RuntimeWiring.Builder runtimeWiringBuilder, ObjectTypeDefinition objectType) {
-        AnnotatedType<?> typeResolver = scanResult.getTypeResolver(objectType.getName());
+        Bean<?> typeResolver = scanResult.getTypeResolver(objectType.getName());
         if (typeResolver == null) {
             return;
         }
 
         TypeRuntimeWiring.Builder objectTypeWiringBuilder = newTypeWiring(objectType.getName());
-        Resolver<?> resolver = (Resolver<?>) instance.select(typeResolver.getJavaClass()).get();
+        Resolver<?> resolver = (Resolver<?>) instance.select(typeResolver.getBeanClass()).get();
 
         for (FieldDefinition fieldDef : objectType.getFieldDefinitions()) {
             addFieldDataFetcher(objectTypeWiringBuilder, fieldDef, resolver, typeResolver);
@@ -166,10 +168,10 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     }
 
     private <T> void addFieldDataFetcher(TypeRuntimeWiring.Builder objectTypeWiringBuilder, FieldDefinition fieldDef,
-            Resolver<?> resolver, AnnotatedType<T> resolverType) {
+            Resolver<?> resolver, Bean<T> resolverType) {
         String fieldName = fieldDef.getName();
-        Optional<AnnotatedMethod<? super T>> method = resolverType.getMethods().stream()
-                .filter(m -> m.getJavaMember().getName().equals(fieldName)).findFirst();
+        Optional<Method> method = Stream.of(resolverType.getBeanClass().getMethods())
+                .filter(m -> m.getName().equals(fieldName)).findFirst();
         if (method.isPresent()) {
             DataFetcher<?> dataFetcher = buildFieldResolverDataFetcher(resolver, method.get());
             objectTypeWiringBuilder.dataFetcher(fieldDef.getName(), dataFetcher);
@@ -184,8 +186,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         }
     }
 
-    private DataFetcher<?> buildFieldResolverDataFetcher(Resolver<?> resolver,
-            AnnotatedMethod<?> resolverMethod) {
+    private DataFetcher<?> buildFieldResolverDataFetcher(Resolver<?> resolver, Method resolverMethod) {
         return env -> methodInvoker.invokeResolverMethod(resolverMethod, resolver, env);
     }
 

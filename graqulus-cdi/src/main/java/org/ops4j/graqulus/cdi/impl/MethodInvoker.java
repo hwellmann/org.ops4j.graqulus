@@ -1,6 +1,8 @@
 package org.ops4j.graqulus.cdi.impl;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
@@ -27,27 +29,27 @@ public class MethodInvoker {
         return queryMethod.getJavaMember().invoke(service, args);
     }
 
-    public Object invokeResolverMethod(AnnotatedMethod<?> resolverMethod, Resolver<?> resolver,
+    public Object invokeResolverMethod(Method resolverMethod, Resolver<?> resolver,
             DataFetchingEnvironment env)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         Object args[] = getResolverInvocationArguments(resolverMethod, env);
-        return resolverMethod.getJavaMember().invoke(resolver, args);
+        return resolverMethod.invoke(resolver, args);
     }
 
     private Object[] getInvocationArguments(AnnotatedMethod<?> queryMethod, DataFetchingEnvironment env) {
         Object[] args = new Object[queryMethod.getParameters().size()];
         int pos = 0;
         for (AnnotatedParameter<?> param : queryMethod.getParameters()) {
-            args[pos] = getInvocationArgument(param, env);
+            args[pos] = getInvocationArgument(param.getJavaParameter(), env);
             pos++;
         }
         return args;
     }
 
-    private Object[] getResolverInvocationArguments(AnnotatedMethod<?> queryMethod, DataFetchingEnvironment env) {
-        Object[] args = new Object[queryMethod.getParameters().size()];
+    private Object[] getResolverInvocationArguments(Method queryMethod, DataFetchingEnvironment env) {
+        Object[] args = new Object[queryMethod.getParameters().length];
         int pos = 0;
-        for (AnnotatedParameter<?> param : queryMethod.getParameters()) {
+        for (Parameter param : queryMethod.getParameters()) {
             if (pos == 0) {
                 args[0] = env.getSource();
             } else {
@@ -58,18 +60,18 @@ public class MethodInvoker {
         return args;
     }
 
-    private Object getInvocationArgument(AnnotatedParameter<?> param, DataFetchingEnvironment env) {
-        String paramName = param.getJavaParameter().getName();
+    private Object getInvocationArgument(Parameter param, DataFetchingEnvironment env) {
+        String paramName = param.getName();
         Object arg = findArgumentOnStack(paramName, env);
         return maybeConvertEnumValue(param, arg);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private Object maybeConvertEnumValue(AnnotatedParameter<?> param, Object arg) {
+    private Object maybeConvertEnumValue(Parameter param, Object arg) {
         if (arg == null) {
             return null;
         }
-        Class paramClass = param.getJavaParameter().getType();
+        Class paramClass = param.getType();
         if (Enum.class.isAssignableFrom(paramClass)) {
             return Enum.valueOf(paramClass, arg.toString());
 

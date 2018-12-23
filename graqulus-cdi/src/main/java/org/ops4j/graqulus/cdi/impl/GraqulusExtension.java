@@ -12,11 +12,12 @@ import javax.enterprise.inject.spi.AnnotatedMethod;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.ProcessAnnotatedType;
+import javax.enterprise.inject.spi.ProcessBean;
 import javax.enterprise.inject.spi.WithAnnotations;
 
 import org.ops4j.graqulus.cdi.api.BatchLoader;
-import org.ops4j.graqulus.cdi.api.RootOperation;
 import org.ops4j.graqulus.cdi.api.Resolver;
+import org.ops4j.graqulus.cdi.api.RootOperation;
 import org.ops4j.graqulus.cdi.api.Schema;
 
 public class GraqulusExtension implements Extension {
@@ -41,14 +42,14 @@ public class GraqulusExtension implements Extension {
             .forEach(scanResult::registerBatchLoaderMethod);
     }
 
-    <T extends Resolver<?>> void processAnnotatedType(@Observes ProcessAnnotatedType<T> pat) {
-        Set<Type> closure = pat.getAnnotatedType().getTypeClosure();
+    <T extends Resolver<?>> void processResolver(@Observes ProcessBean<T> pb) {
+        Set<Type> closure = pb.getBean().getTypes();
         Type resolver = closure.stream().filter(this::isResolver).findFirst().get();
         ParameterizedType paramType = (ParameterizedType) resolver;
         Class<?> gqlType = (Class<?>) paramType.getActualTypeArguments()[0];
 
         String typeName = gqlType.getSimpleName();
-        scanResult.registerTypeResolver(typeName, pat.getAnnotatedType());
+        scanResult.registerTypeResolver(typeName, pb.getBean());
     }
 
     private boolean isResolver(Type type) {

@@ -22,7 +22,9 @@ public class BatchGitHubQueryCdiTest {
             .disableDiscovery()
             .addExtensions(new GraqulusExtension())
             .addPackages(GraqulusExtension.class)
-            .addBeanClasses(GitHubService.class, RepositoryResolver.class, BatchRefResolver.class, TargetProducer.class));
+            .addBeanClasses(GitHubService.class, RepositoryResolver.class, RefResolver.class, BatchRefResolver.class, TargetProducer.class)
+            .addAlternative(BatchRefResolver.class)
+            );
 
     @Inject
     private ExecutionRootFactory rootFactory;

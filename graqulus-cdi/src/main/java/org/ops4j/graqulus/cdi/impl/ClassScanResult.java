@@ -9,7 +9,7 @@ import java.util.Map;
 
 import javax.enterprise.inject.Vetoed;
 import javax.enterprise.inject.spi.AnnotatedMethod;
-import javax.enterprise.inject.spi.AnnotatedType;
+import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.DefinitionException;
 
 @Vetoed
@@ -19,7 +19,7 @@ public class ClassScanResult {
     private String modelPackage;
     private Map<String, AnnotatedMethod<?>> queryMethodMap = new HashMap<>();
     private Map<String, AnnotatedMethod<?>> batchLoaderMap = new HashMap<>();
-    private Map<String, AnnotatedType<?>> typeResolverMap = new HashMap<>();
+    private Map<String, Bean<?>> typeResolverMap = new HashMap<>();
 
     public String getSchemaPath() {
         return schemaPath;
@@ -61,8 +61,8 @@ public class ClassScanResult {
         }
     }
 
-    public void registerTypeResolver(String typeName, AnnotatedType<?> annotatedType) {
-        AnnotatedType<?> previous = typeResolverMap.putIfAbsent(typeName, annotatedType);
+    public void registerTypeResolver(String typeName, Bean<?> bean) {
+        Bean<?> previous = typeResolverMap.putIfAbsent(typeName, bean);
         if (previous != null) {
             throw new DefinitionException("duplicate type resolver class");
         }
@@ -80,7 +80,7 @@ public class ClassScanResult {
         return queryMethodMap.get(queryName);
     }
 
-    public AnnotatedType<?> getTypeResolver(String typeName) {
+    public Bean<?> getTypeResolver(String typeName) {
         return typeResolverMap.get(typeName);
     }
 

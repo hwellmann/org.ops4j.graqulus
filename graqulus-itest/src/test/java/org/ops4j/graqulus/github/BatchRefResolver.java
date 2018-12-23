@@ -8,11 +8,12 @@ import java.util.List;
 import java.util.function.Function;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Alternative;
 import javax.json.JsonObject;
 
 import org.ops4j.graqulus.cdi.api.BatchLoader;
 import org.ops4j.graqulus.cdi.api.Resolver;
-
+@Alternative
 @ApplicationScoped
 public class BatchRefResolver implements Resolver<Ref> {
 

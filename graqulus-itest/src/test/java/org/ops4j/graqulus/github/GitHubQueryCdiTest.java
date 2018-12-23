@@ -22,7 +22,8 @@ public class GitHubQueryCdiTest {
             .disableDiscovery()
             .addExtensions(new GraqulusExtension())
             .addPackages(GraqulusExtension.class)
-            .addBeanClasses(GitHubService.class, RepositoryResolver.class, RefResolver.class, TargetProducer.class));
+            .addBeanClasses(GitHubService.class, RepositoryResolver.class, RefResolver.class, TargetProducer.class)
+            .addAlternative(RefResolver.class));
 
     @Inject
     private ExecutionRootFactory rootFactory;
