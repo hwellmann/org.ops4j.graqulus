@@ -36,11 +36,10 @@ public class AsyncBatchLoaderWithContext<T> implements BatchLoaderWithContext<St
             args[i] = arg;
         }
         if (CompletionStage.class.isAssignableFrom(method.getReturnType())) {
-        	return (CompletionStage<List<T>>) Exceptional.call(() -> method.invoke(service, args));
+            return (CompletionStage<List<T>>) Exceptional.call(() -> method.invoke(service, args));
         }
         return CompletableFuture.supplyAsync(Exceptional.uncheckSupplier(() -> (List<T>) method.invoke(service, args)));
     }
-
 
     private Object getContextObject(String key, Map<Object, Object> keyContexts, String paramName) {
 
