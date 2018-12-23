@@ -2,13 +2,13 @@ package org.ops4j.graqulus.cdi.impl;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.List;
 import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.AfterDeploymentValidation;
-import javax.enterprise.inject.spi.AnnotatedMethod;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.ProcessAnnotatedType;
@@ -18,38 +18,42 @@ import javax.enterprise.inject.spi.WithAnnotations;
 import org.ops4j.graqulus.cdi.api.BatchLoader;
 import org.ops4j.graqulus.cdi.api.Resolver;
 import org.ops4j.graqulus.cdi.api.RootOperation;
-import org.ops4j.graqulus.cdi.api.Schema;
 
 public class GraqulusExtension implements Extension {
 
     private ClassScanResult scanResult = new ClassScanResult();
 
-    <T> void processSchema(@Observes @WithAnnotations(Schema.class) ProcessAnnotatedType<T> pat) {
-        Schema schema = pat.getAnnotatedType().getAnnotation(Schema.class);
-        scanResult.setModelPackage(schema.modelPackage());
-        scanResult.setSchemaPath(schema.path());
+    <T> void processQuery(@Observes @WithAnnotations(RootOperation.class) ProcessAnnotatedType<T> event) {
+        scanResult.registerRootOperation(event.getAnnotatedType());
     }
 
-    <T> void processQuery(@Observes @WithAnnotations(RootOperation.class) ProcessAnnotatedType<T> pat) {
-        for (AnnotatedMethod<?> method : pat.getAnnotatedType().getMethods()) {
-            scanResult.registerQueryMethod(method);
-        }
+    <T> void processBatchLoader(@Observes @WithAnnotations(BatchLoader.class) ProcessAnnotatedType<T> event) {
+        event.getAnnotatedType().getMethods().stream()
+                .filter(m -> m.getAnnotation(BatchLoader.class) != null)
+                .forEach(scanResult::registerBatchLoaderMethod);
     }
 
-    <T> void processBatchLoader(@Observes @WithAnnotations(BatchLoader.class) ProcessAnnotatedType<T> pat) {
-        pat.getAnnotatedType().getMethods().stream()
-            .filter(m -> m.getAnnotation(BatchLoader.class) != null)
-            .forEach(scanResult::registerBatchLoaderMethod);
-    }
-
-    <T extends Resolver<?>> void processResolver(@Observes ProcessBean<T> pb) {
-        Set<Type> closure = pb.getBean().getTypes();
+    <T extends Resolver<?>> void processResolver(@Observes ProcessBean<T> event) {
+        Set<Type> closure = event.getBean().getTypes();
         Type resolver = closure.stream().filter(this::isResolver).findFirst().get();
         ParameterizedType paramType = (ParameterizedType) resolver;
         Class<?> gqlType = (Class<?>) paramType.getActualTypeArguments()[0];
 
         String typeName = gqlType.getSimpleName();
-        scanResult.registerTypeResolver(typeName, pb.getBean());
+        scanResult.registerTypeResolver(typeName, event.getBean());
+    }
+
+    void afterBeanDiscovery(@Observes AfterBeanDiscovery event) {
+        event.addBean()
+                .addType(ClassScanResult.class)
+                .scope(ApplicationScoped.class)
+                .createWith(ctx -> scanResult);
+    }
+
+    void afterDeploymentValidation(@Observes AfterDeploymentValidation event, BeanManager beanManager) {
+        GraqulusExecutor executor = beanManager.createInstance().select(GraqulusExecutor.class).get();
+        List<Exception> deploymentProblems = executor.validateSchemaAndWiring();
+        deploymentProblems.stream().forEach(event::addDeploymentProblem);
     }
 
     private boolean isResolver(Type type) {
@@ -60,16 +64,5 @@ public class GraqulusExtension implements Extension {
             }
         }
         return false;
-    }
-
-    void afterBeanDiscovery(@Observes AfterBeanDiscovery afterBeanDiscovery) {
-        afterBeanDiscovery.addBean()
-                .addType(ClassScanResult.class)
-                .scope(ApplicationScoped.class)
-                .createWith(ctx -> scanResult);
-    }
-
-    void afterDeploymentValidation(@Observes AfterDeploymentValidation adv, BeanManager beanManager) {
-        beanManager.createInstance().select(GraqulusExecutor.class).get().validateSchemaAndWiring();
     }
 }

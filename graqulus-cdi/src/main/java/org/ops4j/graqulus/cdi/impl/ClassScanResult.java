@@ -2,6 +2,7 @@ package org.ops4j.graqulus.cdi.impl;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -9,39 +10,21 @@ import java.util.Map;
 
 import javax.enterprise.inject.Vetoed;
 import javax.enterprise.inject.spi.AnnotatedMethod;
+import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.DefinitionException;
 
 @Vetoed
 public class ClassScanResult {
 
-    private String schemaPath;
-    private String modelPackage;
-    private Map<String, AnnotatedMethod<?>> queryMethodMap = new HashMap<>();
     private Map<String, AnnotatedMethod<?>> batchLoaderMap = new HashMap<>();
+    private List<AnnotatedType<?>> rootOperations = new ArrayList<>();
+
+    /** Maps GraphQL types to type resolver beans. */
     private Map<String, Bean<?>> typeResolverMap = new HashMap<>();
 
-    public String getSchemaPath() {
-        return schemaPath;
-    }
-
-    public void setSchemaPath(String schemaPath) {
-        this.schemaPath = schemaPath;
-    }
-
-    public String getModelPackage() {
-        return modelPackage;
-    }
-
-    public void setModelPackage(String modelPackage) {
-        this.modelPackage = modelPackage;
-    }
-
-    public void registerQueryMethod(AnnotatedMethod<?> method) {
-        AnnotatedMethod<?> previous = queryMethodMap.putIfAbsent(method.getJavaMember().getName(), method);
-        if (previous != null) {
-            throw new DefinitionException("duplicate query method");
-        }
+    public void registerRootOperation(AnnotatedType<?> rootOperation) {
+        rootOperations.add(rootOperation);
     }
 
     public void registerBatchLoaderMethod(AnnotatedMethod<?> method) {
@@ -76,13 +59,11 @@ public class ClassScanResult {
         return Collections.unmodifiableMap(batchLoaderMap);
     }
 
-    public AnnotatedMethod<?> getQueryMethod(String queryName) {
-        return queryMethodMap.get(queryName);
-    }
-
     public Bean<?> getTypeResolver(String typeName) {
         return typeResolverMap.get(typeName);
     }
 
-
+    public List<AnnotatedType<?>> getRootOperations() {
+        return rootOperations;
+    }
 }

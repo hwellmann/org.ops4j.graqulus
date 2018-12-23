@@ -14,7 +14,7 @@ import org.ops4j.graqulus.cdi.api.RootOperation;
 import org.ops4j.graqulus.cdi.api.Schema;
 
 @ApplicationScoped
-@Schema(path = "githubPartial.graphqls", modelPackage = "org.ops4j.graqulus.cdi.github")
+@Schema(path = "githubPartial.graphqls", modelPackage = "org.ops4j.graqulus.github")
 @RootOperation
 public class GitHubService implements Query {
 

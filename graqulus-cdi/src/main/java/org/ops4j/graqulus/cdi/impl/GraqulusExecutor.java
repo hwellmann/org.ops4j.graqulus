@@ -3,6 +3,8 @@ package org.ops4j.graqulus.cdi.impl;
 import static graphql.Scalars.GraphQLString;
 import static graphql.schema.GraphQLScalarType.newScalar;
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -17,6 +20,7 @@ import java.util.stream.Stream;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
 import javax.enterprise.inject.spi.AnnotatedMethod;
+import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.DefinitionException;
 import javax.enterprise.inject.spi.DeploymentException;
@@ -28,6 +32,7 @@ import org.ops4j.graqulus.cdi.api.ExecutionRoot;
 import org.ops4j.graqulus.cdi.api.ExecutionRootFactory;
 import org.ops4j.graqulus.cdi.api.IdPropertyStrategy;
 import org.ops4j.graqulus.cdi.api.Resolver;
+import org.ops4j.graqulus.cdi.api.Schema;
 import org.ops4j.graqulus.shared.OperationTypeRegistry;
 
 import graphql.GraphQL;
@@ -47,6 +52,7 @@ import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.TypeInfo;
 import graphql.schema.idl.TypeRuntimeWiring;
+import graphql.schema.idl.errors.SchemaProblem;
 
 @ApplicationScoped
 public class GraqulusExecutor implements ExecutionRootFactory {
@@ -68,11 +74,44 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     private GraphQLSchema executableSchema;
     private OperationTypeRegistry operationTypeRegistry;
 
-    public void validateSchemaAndWiring() {
+    private List<Exception> deploymentProblems = new ArrayList<>();
+
+    private Schema schema;
+
+    public List<Exception> validateSchemaAndWiring() {
+        findSchemaOnRootOperations();
         loadAndParseSchema();
+        checkOperationRoots();
         buildRuntimeWiring();
 
         executableSchema = new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring);
+        return deploymentProblems;
+    }
+
+    private void findSchemaOnRootOperations() {
+        List<AnnotatedType<?>> typesWithSchema = scanResult.getRootOperations().stream()
+                .filter(this::isResolvable)
+                .filter(this::hasSchema)
+                .collect(toList());
+
+        if (typesWithSchema.isEmpty()) {
+            throw new DeploymentException("No @Schema annotation found on root operation beans");
+        }
+
+        if (typesWithSchema.size() > 1) {
+            String classes = toCommaList(typesWithSchema);
+            throw new DefinitionException("Multiple @Schema annotations found on classes " + classes);
+        }
+
+        schema = typesWithSchema.get(0).getAnnotation(Schema.class);
+    }
+
+    private boolean isResolvable(AnnotatedType<?> annotatedType) {
+        return instance.select(annotatedType.getJavaClass()).isResolvable();
+    }
+
+    private boolean hasSchema(AnnotatedType<?> annotatedType) {
+        return annotatedType.isAnnotationPresent(Schema.class);
     }
 
     @Override
@@ -83,7 +122,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private void loadAndParseSchema() {
         ClassLoader tccl = Thread.currentThread().getContextClassLoader();
-        String schemaPath = scanResult.getSchemaPath();
+        String schemaPath = schema.path();
         InputStream is = tccl.getResourceAsStream(schemaPath);
         if (is == null) {
             throw new DefinitionException("No schema resource with path " + schemaPath);
@@ -92,11 +131,18 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             SchemaParser parser = new SchemaParser();
             registry = parser.parse(reader);
-            operationTypeRegistry = new OperationTypeRegistry(registry);
         } catch (IOException exc) {
-            throw new DefinitionException(exc);
+            throw new DefinitionException("Cannot read schema resource", exc);
+        } catch (SchemaProblem exc) {
+            throw new DefinitionException("Invalid schema", exc);
         }
     }
+
+    private void checkOperationRoots() {
+        operationTypeRegistry = new OperationTypeRegistry(registry);
+    }
+
+
 
     private void buildRuntimeWiring() {
         Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
@@ -143,12 +189,40 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     }
 
     private TypeRuntimeWiring.Builder buildOperationTypeWiring(ObjectTypeDefinition objectType) {
+        String typeName = objectType.getName();
+        String interfaceName = String.format("%s.%s", schema.modelPackage(), typeName);
+
+        List<AnnotatedType<?>> annotatedTypes = scanResult.getRootOperations().stream()
+                .filter(this::isResolvable)
+                .filter(t -> hasInterface(t, interfaceName))
+                .collect(toList());
+
+        if (annotatedTypes.isEmpty()) {
+            throw new DeploymentException("There is no @RootOperation bean implementing " + interfaceName);
+        }
+
+        if (annotatedTypes.size() > 1) {
+            String classes = toCommaList(annotatedTypes);
+            throw new DefinitionException("There are multiple @RootOperation beans implementing "
+                    + interfaceName + ": " + classes);
+        }
+
+        AnnotatedType<?> operationType = annotatedTypes.get(0);
+
         TypeRuntimeWiring.Builder queryWiringBuilder = TypeRuntimeWiring.newTypeWiring(objectType.getName());
         for (FieldDefinition query : objectType.getFieldDefinitions()) {
-            DataFetcher<?> dataFetcher = buildDataFetcher(query);
+            DataFetcher<?> dataFetcher = buildDataFetcher(query, operationType);
             queryWiringBuilder.dataFetcher(query.getName(), dataFetcher);
         }
         return queryWiringBuilder;
+    }
+
+    private String toCommaList(List<AnnotatedType<?>> annotatedTypes) {
+        return annotatedTypes.stream().map(t -> t.getJavaClass().getName()).collect(joining(", "));
+    }
+
+    private boolean hasInterface(AnnotatedType<?> annotatedType, String interfaceName) {
+        return Stream.of(annotatedType.getJavaClass().getInterfaces()).anyMatch(i -> i.getName().equals(interfaceName));
     }
 
     private void addObjectTypeWiring(RuntimeWiring.Builder runtimeWiringBuilder, ObjectTypeDefinition objectType) {
@@ -222,12 +296,22 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         return env.getSchema().getObjectType(typeName);
     }
 
-    private DataFetcher<?> buildDataFetcher(FieldDefinition query) {
-        AnnotatedMethod<?> queryMethod = scanResult.getQueryMethod(query.getName());
-        if (queryMethod == null) {
-            throw new DeploymentException("No query method for " + query.getName());
+    private DataFetcher<?> buildDataFetcher(FieldDefinition query, AnnotatedType<?> operationType) {
+        List<AnnotatedMethod<?>> queryMethods = operationType.getMethods().stream()
+                .filter(m -> m.getJavaMember().getName().equals(query.getName()))
+                .collect(toList());
+
+        if (queryMethods.isEmpty()) {
+            throw new DeploymentException(String.format("Class %s has no method named %s",
+                    operationType.getJavaClass().getName(), query.getName()));
         }
-        return env -> methodInvoker.invokeQueryMethod(this, queryMethod, env);
+
+        if (queryMethods.size() > 1) {
+            throw new DeploymentException(String.format("Class %s has multiple methods named %s",
+                    operationType.getJavaClass().getName(), query.getName()));
+        }
+
+        return env -> methodInvoker.invokeQueryMethod(this, queryMethods.get(0), env);
     }
 
     private DataLoaderRegistry buildDataLoaderRegistry() {
