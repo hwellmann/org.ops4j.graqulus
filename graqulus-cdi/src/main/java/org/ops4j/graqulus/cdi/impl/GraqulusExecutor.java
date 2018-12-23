@@ -42,6 +42,7 @@ import graphql.language.InterfaceTypeDefinition;
 import graphql.language.ObjectTypeDefinition;
 import graphql.language.ScalarTypeDefinition;
 import graphql.language.TypeDefinition;
+import graphql.language.UnionTypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
@@ -203,7 +204,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
         if (annotatedTypes.size() > 1) {
             String classes = toCommaList(annotatedTypes);
-            throw new DefinitionException("There are multiple @RootOperation beans implementing "
+            throw new DeploymentException("There are multiple @RootOperation beans implementing "
                     + interfaceName + ": " + classes);
         }
 
@@ -243,22 +244,34 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private <T> void addFieldDataFetcher(TypeRuntimeWiring.Builder objectTypeWiringBuilder, FieldDefinition fieldDef,
             Resolver<?> resolver, Bean<T> resolverType) {
-        String fieldName = fieldDef.getName();
-        Optional<Method> method = Stream.of(resolverType.getBeanClass().getMethods())
-                .filter(m -> m.getName().equals(fieldName)).findFirst();
+
+        Optional<Method> method = findResolverMethodForField(resolverType, fieldDef);
+
         if (method.isPresent()) {
             DataFetcher<?> dataFetcher = buildFieldResolverDataFetcher(resolver, method.get());
             objectTypeWiringBuilder.dataFetcher(fieldDef.getName(), dataFetcher);
-            return;
+        } else {
+            addFieldDataFetcherWithBatchLoader(objectTypeWiringBuilder, fieldDef, resolver);
         }
+    }
 
+    private Optional<Method> findResolverMethodForField(Bean<?> resolverType, FieldDefinition fieldDef) {
+        String fieldName = fieldDef.getName();
+        return Stream.of(resolverType.getBeanClass().getMethods())
+                .filter(m -> m.getName().equals(fieldName))
+                .findFirst();
+    }
+
+    private <T> void addFieldDataFetcherWithBatchLoader(TypeRuntimeWiring.Builder objectTypeWiringBuilder,
+            FieldDefinition fieldDef, Resolver<?> resolver) {
         boolean loadAllById = resolver.loadAllById();
         List<String> loadById = resolver.loadById();
-        if (requiresDataFetcher(fieldDef.getType()) && (loadAllById || loadById.contains(fieldName))) {
+        if (requiresDataFetcher(fieldDef.getType()) && (loadAllById || loadById.contains(fieldDef.getName()))) {
             DataFetcher<?> dataFetcher = buildDataFetcher(fieldDef.getType(), resolver);
             objectTypeWiringBuilder.dataFetcher(fieldDef.getName(), dataFetcher);
         }
     }
+
 
     private DataFetcher<?> buildFieldResolverDataFetcher(Resolver<?> resolver, Method resolverMethod) {
         return env -> methodInvoker.invokeResolverMethod(resolverMethod, resolver, env);
@@ -270,6 +283,9 @@ public class GraqulusExecutor implements ExecutionRootFactory {
             return true;
         }
         if (typeDef instanceof ObjectTypeDefinition) {
+            return true;
+        }
+        if (typeDef instanceof UnionTypeDefinition) {
             return true;
         }
         return false;
