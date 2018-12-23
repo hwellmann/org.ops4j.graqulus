@@ -55,7 +55,7 @@ public class RepositoryResolver implements Resolver<Repository> {
         Ref ref = new Ref();
         ref.setName(json.getString("name"));
         GitObject target = new Commit();
-        target.setOid(json.getJsonObject("commit").getString("sha"));
+        target.setId(json.getJsonObject("commit").getString("sha"));
         ref.setTarget(target);
         return ref;
     }

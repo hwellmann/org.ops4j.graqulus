@@ -77,7 +77,7 @@ public class MethodInvoker {
         return arg;
     }
 
-    private <T> T findArgumentOnStack(String name, DataFetchingEnvironment env) {
+    public <T> T findArgumentOnStack(String name, DataFetchingEnvironment env) {
         T arg = env.getArgument(name);
         if (arg == null) {
             ExecutionStepInfo parent = env.getExecutionStepInfo().getParent();

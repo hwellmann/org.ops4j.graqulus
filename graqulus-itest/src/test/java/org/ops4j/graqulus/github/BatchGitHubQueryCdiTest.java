@@ -15,14 +15,14 @@ import org.ops4j.graqulus.cdi.impl.GraqulusExtension;
 import graphql.ExecutionResult;
 
 @EnableWeld
-public class GitHubQueryCdiTest {
+public class BatchGitHubQueryCdiTest {
 
     @WeldSetup
     public WeldInitiator weld = WeldInitiator.of(WeldInitiator.createWeld()
             .disableDiscovery()
             .addExtensions(new GraqulusExtension())
             .addPackages(GraqulusExtension.class)
-            .addBeanClasses(GitHubService.class, RepositoryResolver.class, RefResolver.class, TargetProducer.class));
+            .addBeanClasses(GitHubService.class, RepositoryResolver.class, BatchRefResolver.class, TargetProducer.class));
 
     @Inject
     private ExecutionRootFactory rootFactory;

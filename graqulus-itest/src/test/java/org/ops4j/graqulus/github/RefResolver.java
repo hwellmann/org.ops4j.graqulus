@@ -3,6 +3,8 @@ package org.ops4j.graqulus.github;
 import static org.ops4j.graqulus.github.JsonFileHelper.useFiles;
 import static org.ops4j.graqulus.github.JsonFileHelper.writeToFile;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -20,9 +22,14 @@ public class RefResolver implements Resolver<Ref> {
 	@Inject
 	private WebTarget target;
 
+	@Override
+	public List<String> loadById() {
+		return Collections.singletonList("target");
+	}
+
 	@ResolveField
 	public CompletionStage<Commit> target(Ref ref, String owner, String name) {
-		String id = ref.getTarget().getOid();
+		String id = ref.getTarget().getId();
 		return useFiles() ? targetFromFile(owner, name, id) : targetFromApi(owner, name, id);
 	}
 

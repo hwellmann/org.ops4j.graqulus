@@ -36,9 +36,9 @@ public class GraqulusExtension implements Extension {
     }
 
     <T> void processBatchLoader(@Observes @WithAnnotations(BatchLoader.class) ProcessAnnotatedType<T> pat) {
-        for (AnnotatedMethod<?> method : pat.getAnnotatedType().getMethods()) {
-            scanResult.registerBatchLoaderMethod(method);
-        }
+        pat.getAnnotatedType().getMethods().stream()
+            .filter(m -> m.getAnnotation(BatchLoader.class) != null)
+            .forEach(scanResult::registerBatchLoaderMethod);
     }
 
     <T extends Resolver<?>> void processAnnotatedType(@Observes ProcessAnnotatedType<T> pat) {

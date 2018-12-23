@@ -1,5 +1,9 @@
 package org.ops4j.graqulus.cdi.impl;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -14,9 +18,13 @@ import graphql.schema.PropertyDataFetcher;
 public class BatchDataFetcher<T> implements DataFetcher<CompletionStage<T>> {
 
     private PropertyDataFetcher<Object> idFetcher;
+    private Method batchLoaderMethod;
+    private MethodInvoker methodInvoker;
 
-    public BatchDataFetcher(String idProperty) {
+    public BatchDataFetcher(Method batchLoaderMethod, String idProperty, MethodInvoker methodInvoker) {
+        this.batchLoaderMethod = batchLoaderMethod;
         this.idFetcher = new PropertyDataFetcher<>(idProperty);
+        this.methodInvoker = methodInvoker;
     }
 
     @Override
@@ -29,6 +37,18 @@ public class BatchDataFetcher<T> implements DataFetcher<CompletionStage<T>> {
         String id = toId(ref, env);
         String fieldTypeName = GraphQLTypeUtil.unwrapAll(env.getFieldType()).getName();
         DataLoader<String, T> dataLoader = env.getDataLoader(fieldTypeName);
+
+        int numParams = batchLoaderMethod.getParameters().length;
+        if (numParams > 1) {
+            Map<String, Object> keyContext = new HashMap<>();
+            for (int i = 1; i < numParams; i++) {
+                Parameter param = batchLoaderMethod.getParameters()[i];
+                String paramName = param.getName();
+                Object arg = methodInvoker.findArgumentOnStack(paramName, env);
+                keyContext.put(paramName, arg);
+            }
+            dataLoader.load(id, keyContext);
+        }
         return dataLoader.load(id);
     }
 

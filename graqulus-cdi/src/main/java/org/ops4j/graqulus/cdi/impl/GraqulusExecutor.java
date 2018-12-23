@@ -210,9 +210,9 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
         String idProperty = idPropertyStrategy.id(typeDef.getName());
         if (typeInfo.isList()) {
-            return new BatchListDataFetcher<>(idProperty);
+            return new BatchListDataFetcher<>(batchLoaderMethod.getJavaMember(), idProperty, methodInvoker);
         } else {
-            return new BatchDataFetcher<>(idProperty);
+            return new BatchDataFetcher<>(batchLoaderMethod.getJavaMember(), idProperty, methodInvoker);
         }
     }
 
@@ -238,7 +238,10 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private DataLoader<?, ?> buildDataLoader(AnnotatedMethod<?> method) {
         Object service = instance.select(method.getDeclaringType().getJavaClass()).get();
-        AsyncBatchLoader<Object> batchLoader = new AsyncBatchLoader<>(service, method.getJavaMember());
-        return DataLoader.newDataLoader(batchLoader);
+        if (method.getParameters().size() > 1) {
+            return DataLoader.newDataLoader(new AsyncBatchLoaderWithContext<>(service, method.getJavaMember()));
+        } else {
+            return DataLoader.newDataLoader(new AsyncBatchLoader<>(service, method.getJavaMember()));
+        }
     }
 }
