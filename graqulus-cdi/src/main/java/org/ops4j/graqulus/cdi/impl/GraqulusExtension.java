@@ -15,7 +15,7 @@ import javax.enterprise.inject.spi.ProcessAnnotatedType;
 import javax.enterprise.inject.spi.WithAnnotations;
 
 import org.ops4j.graqulus.cdi.api.BatchLoader;
-import org.ops4j.graqulus.cdi.api.Query;
+import org.ops4j.graqulus.cdi.api.RootOperation;
 import org.ops4j.graqulus.cdi.api.Resolver;
 import org.ops4j.graqulus.cdi.api.Schema;
 
@@ -29,7 +29,7 @@ public class GraqulusExtension implements Extension {
         scanResult.setSchemaPath(schema.path());
     }
 
-    <T> void processQuery(@Observes @WithAnnotations(Query.class) ProcessAnnotatedType<T> pat) {
+    <T> void processQuery(@Observes @WithAnnotations(RootOperation.class) ProcessAnnotatedType<T> pat) {
         for (AnnotatedMethod<?> method : pat.getAnnotatedType().getMethods()) {
             scanResult.registerQueryMethod(method);
         }

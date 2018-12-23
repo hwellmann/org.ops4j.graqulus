@@ -10,11 +10,12 @@ import javax.inject.Inject;
 import javax.json.JsonObject;
 import javax.ws.rs.client.WebTarget;
 
+import org.ops4j.graqulus.cdi.api.RootOperation;
 import org.ops4j.graqulus.cdi.api.Schema;
 
 @ApplicationScoped
 @Schema(path = "githubPartial.graphqls", modelPackage = "org.ops4j.graqulus.cdi.github")
-@org.ops4j.graqulus.cdi.api.Query
+@RootOperation
 public class GitHubService implements Query {
 
 	@Inject
