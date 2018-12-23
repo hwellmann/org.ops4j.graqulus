@@ -1,15 +1,18 @@
 package org.ops4j.graqulus.starwars;
 
 import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.ops4j.graqulus.starwars.Episode.EMPIRE;
 import static org.ops4j.graqulus.starwars.Episode.JEDI;
 import static org.ops4j.graqulus.starwars.Episode.NEWHOPE;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Stream;
 
 public class StarWarsData {
@@ -26,6 +29,7 @@ public class StarWarsData {
     private static List<Human> humans = Arrays.asList(luke, vader, han, leia, tarkin);
     private static List<Droid> droids = Arrays.asList(threepio, artoo);
     private static Map<String, Character> characters;
+    private static Map<Episode, LocalDate> launchDates = new HashMap<>();
 
     static {
         luke.setId("1000");
@@ -72,11 +76,26 @@ public class StarWarsData {
         heroes.put(EMPIRE, luke);
         heroes.put(JEDI, artoo);
 
+        launchDates.put(NEWHOPE, LocalDate.of(1977, 5, 25));
+        launchDates.put(EMPIRE, LocalDate.of(1980, 5, 21));
+        launchDates.put(JEDI, LocalDate.of(1983, 5, 25));
+
         characters = Stream.concat(humans.stream(), droids.stream()).collect(toMap(Character::getId, identity()));
     }
 
     public static Character findHero(Episode episode) {
         return heroes.getOrDefault(episode, artoo);
+    }
+
+    public static LocalDate findLaunchDate(Episode episode) {
+        return launchDates.get(episode);
+    }
+
+    public static List<Episode> findLaunchedAfter(LocalDate date) {
+    	return launchDates.entrySet().stream()
+    			.filter(e -> e.getValue().isAfter(date))
+    			.map(Entry::getKey)
+    			.collect(toList());
     }
 
     public static Human findHuman(String id) {
