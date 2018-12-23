@@ -22,6 +22,9 @@ public class AsyncBatchLoader<T> implements BatchLoader<String, T> {
     @SuppressWarnings("unchecked")
     @Override
     public CompletionStage<List<T>> load(List<String> keys) {
+        if (CompletionStage.class.isAssignableFrom(method.getReturnType())) {
+            return (CompletionStage<List<T>>) Exceptional.call(() -> method.invoke(service));
+        }
         return CompletableFuture.supplyAsync(Exceptional.uncheckSupplier(() -> (List<T>) method.invoke(service, keys)));
     }
 }
