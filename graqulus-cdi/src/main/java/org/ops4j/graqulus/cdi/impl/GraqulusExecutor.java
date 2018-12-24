@@ -86,6 +86,10 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         buildRuntimeWiring();
 
         executableSchema = new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring);
+
+        EnumTypeLoader enumTypeLoader = new EnumTypeLoader(registry, executableSchema, schema.modelPackage());
+        enumTypeLoader.overrideEnumerationValues();
+
         return deploymentProblems;
     }
 

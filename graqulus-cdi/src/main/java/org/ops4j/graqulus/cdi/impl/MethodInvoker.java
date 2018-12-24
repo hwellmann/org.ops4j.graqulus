@@ -62,21 +62,7 @@ public class MethodInvoker {
 
     private Object getInvocationArgument(Parameter param, DataFetchingEnvironment env) {
         String paramName = param.getName();
-        Object arg = findArgumentOnStack(paramName, env);
-        return maybeConvertEnumValue(param, arg);
-    }
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private Object maybeConvertEnumValue(Parameter param, Object arg) {
-        if (arg == null) {
-            return null;
-        }
-        Class paramClass = param.getType();
-        if (Enum.class.isAssignableFrom(paramClass)) {
-            return Enum.valueOf(paramClass, arg.toString());
-
-        }
-        return arg;
+        return findArgumentOnStack(paramName, env);
     }
 
     public <T> T findArgumentOnStack(String name, DataFetchingEnvironment env) {
@@ -99,5 +85,4 @@ public class MethodInvoker {
         }
         return arg;
     }
-
 }

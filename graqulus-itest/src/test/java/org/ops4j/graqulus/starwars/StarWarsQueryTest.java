@@ -2,6 +2,8 @@ package org.ops4j.graqulus.starwars;
 
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.ops4j.graqulus.shared.ReflectionHelper.readField;
+import static org.ops4j.graqulus.shared.ReflectionHelper.writeField;
 
 import java.io.File;
 import java.util.List;
@@ -9,7 +11,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.apache.commons.lang3.reflect.FieldUtils;
 import org.dataloader.DataLoader;
 import org.dataloader.DataLoaderRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,10 +49,8 @@ public class StarWarsQueryTest {
 
 
         GraphQLEnumType origEpisodeType = (GraphQLEnumType) schema.getType("Episode");
-        Map<String, GraphQLEnumValueDefinition> valueDefinitionMap =
-        		(Map<String, GraphQLEnumValueDefinition>) FieldUtils.readDeclaredField(episodeType, "valueDefinitionMap", true);
-
-        FieldUtils.writeDeclaredField(origEpisodeType, "valueDefinitionMap", valueDefinitionMap, true);
+        Map<String, GraphQLEnumValueDefinition> valueDefinitionMap = readField(episodeType, "valueDefinitionMap");
+        writeField(origEpisodeType, "valueDefinitionMap", valueDefinitionMap);
 
         queryRoot = GraphQL.newGraphQL(schema).build();
     }

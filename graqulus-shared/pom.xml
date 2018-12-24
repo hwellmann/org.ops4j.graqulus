@@ -6,15 +6,20 @@
         <artifactId>graqulus</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
-    
+
     <groupId>org.ops4j.graqulus</groupId>
     <artifactId>graqulus-shared</artifactId>
-    
+
     <dependencies>
 
         <dependency>
             <groupId>com.graphql-java</groupId>
             <artifactId>graphql-java</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.earcam</groupId>
+            <artifactId>io.earcam.unexceptional</artifactId>
         </dependency>
 
     </dependencies>
