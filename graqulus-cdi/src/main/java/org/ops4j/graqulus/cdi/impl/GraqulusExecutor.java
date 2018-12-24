@@ -82,7 +82,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     public List<Exception> validateSchemaAndWiring() {
         findSchemaOnRootOperations();
-        loadAndParseSchema();
+        buildTypeDefinitionRegistry();
         checkOperationRoots();
         buildRuntimeWiring();
 
@@ -126,9 +126,21 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         return new ExecutionRootImpl(root, buildDataLoaderRegistry());
     }
 
-    private void loadAndParseSchema() {
+    private void buildTypeDefinitionRegistry() {
+        String[] paths = schema.path();
+        if (paths.length == 0) {
+            throw new DefinitionException("@Schema annotation must contain at least one path argument");
+        }
+        TypeDefinitionRegistry mainRegistry = loadAndParseSchema(paths[0]);
+        for (int i = 1; i < paths.length; i++) {
+            TypeDefinitionRegistry additionalRegistry = loadAndParseSchema(paths[i]);
+            mainRegistry.merge(additionalRegistry);
+        }
+        registry = mainRegistry;
+    }
+
+    private TypeDefinitionRegistry loadAndParseSchema(String schemaPath) {
         ClassLoader tccl = Thread.currentThread().getContextClassLoader();
-        String schemaPath = schema.path();
         InputStream is = tccl.getResourceAsStream(schemaPath);
         if (is == null) {
             throw new DefinitionException("No schema resource with path " + schemaPath);
@@ -136,7 +148,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
         try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             SchemaParser parser = new SchemaParser();
-            registry = parser.parse(reader);
+            return parser.parse(reader);
         } catch (IOException exc) {
             throw new DefinitionException("Cannot read schema resource", exc);
         } catch (SchemaProblem exc) {
@@ -147,8 +159,6 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     private void checkOperationRoots() {
         operationTypeRegistry = new OperationTypeRegistry(registry);
     }
-
-
 
     private void buildRuntimeWiring() {
         Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();

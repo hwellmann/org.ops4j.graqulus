@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @Target(TYPE)
 public @interface Schema {
 
-    String path() default "";
+    String[] path() default {};
 
     String modelPackage() default "";
 

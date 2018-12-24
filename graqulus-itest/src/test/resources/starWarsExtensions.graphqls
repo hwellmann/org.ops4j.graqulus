@@ -1,0 +1,1 @@
+extend scalar Date @javaClass(name: "java.time.LocalDate")

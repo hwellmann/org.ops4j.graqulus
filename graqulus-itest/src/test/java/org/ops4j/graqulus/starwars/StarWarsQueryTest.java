@@ -30,13 +30,18 @@ import graphql.schema.idl.TypeDefinitionRegistry;
 public class StarWarsQueryTest {
 
     private static final String SCHEMA_PATH = "src/test/resources/starWars.graphqls";
+    private static final String DIRECTIVE_PATH = "src/test/resources/starWarsDirectives.graphqls";
+    private static final String EXTENSION_PATH = "src/test/resources/starWarsExtensions.graphqls";
     private GraphQL queryRoot;
 
     @BeforeEach
     public void before() throws IllegalAccessException {
         SchemaParser parser = new SchemaParser();
         TypeDefinitionRegistry registry = parser.parse(new File(SCHEMA_PATH));
-
+        TypeDefinitionRegistry directiveRegistry = parser.parse(new File(DIRECTIVE_PATH));
+        TypeDefinitionRegistry extensionRegistry = parser.parse(new File(EXTENSION_PATH));
+        registry.merge(directiveRegistry);
+        registry.merge(extensionRegistry);
 
         SchemaGenerator generator = new SchemaGenerator();
         GraphQLSchema schema = generator.makeExecutableSchema(registry, new StarWarsWiring().buildRuntimeWiring());

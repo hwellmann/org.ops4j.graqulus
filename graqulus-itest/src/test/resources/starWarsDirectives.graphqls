@@ -1,0 +1,1 @@
+directive @javaClass(name: String!) on SCALAR
