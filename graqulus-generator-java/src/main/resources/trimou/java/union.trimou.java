@@ -12,12 +12,18 @@ import javax.validation.constraints.NotNull;
 {{>generated}}
 public class {{typeName}} {{>implements}} {
 
-{{#fieldModels}}
-    private {{&typeName}} {{fieldName}};    
-{{/fieldModels}}
+    private Object value;
+
+    public Object value() {
+        return value;
+    }
+
+    public String type() {
+        return value.getClass().getSimpleName();
+    }
     
 {{#fieldModels}}
-{{>objectFieldAccessors}}    
+{{>unionFieldAccessors}}    
 {{/fieldModels}}
 
 }

@@ -34,6 +34,7 @@ import org.ops4j.graqulus.cdi.api.IdPropertyStrategy;
 import org.ops4j.graqulus.cdi.api.Resolver;
 import org.ops4j.graqulus.cdi.api.Schema;
 import org.ops4j.graqulus.shared.OperationTypeRegistry;
+import org.ops4j.graqulus.shared.ReflectionHelper;
 
 import graphql.GraphQL;
 import graphql.TypeResolutionEnvironment;
@@ -153,6 +154,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         Builder runtimeWiringBuilder = RuntimeWiring.newRuntimeWiring();
 
         addInterfaceTypes(runtimeWiringBuilder);
+        addUnionTypes(runtimeWiringBuilder);
         addObjectTypes(runtimeWiringBuilder);
         addScalarTypes(runtimeWiringBuilder);
 
@@ -164,6 +166,14 @@ public class GraqulusExecutor implements ExecutionRootFactory {
             TypeRuntimeWiring.Builder interfaceWiringBuilder = newTypeWiring(interfaceType.getName())
                     .typeResolver(this::resolveInterface);
             runtimeWiringBuilder.type(interfaceWiringBuilder);
+        }
+    }
+
+    private void addUnionTypes(Builder runtimeWiringBuilder) {
+        for (UnionTypeDefinition unionType : registry.getTypes(UnionTypeDefinition.class)) {
+            TypeRuntimeWiring.Builder unionWiringBuilder = newTypeWiring(unionType.getName())
+                    .typeResolver(this::resolveUnion);
+            runtimeWiringBuilder.type(unionWiringBuilder);
         }
     }
 
@@ -313,6 +323,11 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private GraphQLObjectType resolveInterface(TypeResolutionEnvironment env) {
         String typeName = env.getObject().getClass().getSimpleName();
+        return env.getSchema().getObjectType(typeName);
+    }
+
+    private GraphQLObjectType resolveUnion(TypeResolutionEnvironment env) {
+        String typeName = ReflectionHelper.invokeMethod(env.getObject(), "type");
         return env.getSchema().getObjectType(typeName);
     }
 
