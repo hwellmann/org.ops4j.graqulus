@@ -6,8 +6,6 @@ import javax.annotation.Generated;
 public enum {{typeName}} {
 
 {{#valueNames}}
-    {{this}},
+    {{this}}{{#iter.hasNext}},{{/iter.hasNext}}{{#iter.isLast}};{{/iter.isLast}}
 {{/valueNames}}
-    // trailing comma is intentional
-    ;
 }

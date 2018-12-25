@@ -19,5 +19,4 @@ public class {{typeName}} {{>implements}} {
 {{#fieldModels}}
 {{>unionFieldAccessors}}    
 {{/fieldModels}}
-
 }

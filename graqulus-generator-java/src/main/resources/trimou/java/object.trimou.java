@@ -13,5 +13,4 @@ public class {{typeName}} {{>implements}} {
 {{#fieldModels}}
 {{>objectFieldAccessors}}    
 {{/fieldModels}}
-
 }
