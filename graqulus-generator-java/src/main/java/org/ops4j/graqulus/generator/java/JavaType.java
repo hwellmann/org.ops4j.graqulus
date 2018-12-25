@@ -16,12 +16,15 @@ public class JavaType {
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }
+
     public String getImportName() {
         return importName;
     }
+
     public void setImportName(String importName) {
         this.importName = importName;
     }
