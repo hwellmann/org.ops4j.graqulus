@@ -2,6 +2,7 @@ package {{packageName}};
 
 {{>imports}}
 
+{{>description}}
 // Object
 {{>generated}}
 public class {{typeName}} {{>implements}} {

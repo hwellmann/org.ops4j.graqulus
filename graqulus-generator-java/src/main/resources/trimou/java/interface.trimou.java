@@ -2,6 +2,7 @@ package {{packageName}};
 
 {{>imports}}
 
+{{>description}}
 // Interface
 {{>generated}}
 public interface {{typeName}} {

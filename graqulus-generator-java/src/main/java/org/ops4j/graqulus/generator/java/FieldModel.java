@@ -7,6 +7,7 @@ import graphql.language.FieldDefinition;
 public class FieldModel {
 
     private FieldDefinition fieldDefinition;
+    private String description;
     private String fieldName;
     private JavaType type;
     private boolean notNullRequired;
@@ -20,6 +21,7 @@ public class FieldModel {
     public void setFieldDefinition(FieldDefinition fieldDefinition) {
         this.fieldDefinition = fieldDefinition;
     }
+
     public String getFieldName() {
         return fieldName;
     }
@@ -34,6 +36,14 @@ public class FieldModel {
 
     public void setType(JavaType type) {
         this.type = type;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public boolean isNotNullRequired() {

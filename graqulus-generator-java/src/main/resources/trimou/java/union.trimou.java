@@ -2,6 +2,7 @@ package {{packageName}};
 
 {{>imports}}
 
+{{>description}}
 // Union
 {{>generated}}
 public class {{typeName}} {{>implements}} {

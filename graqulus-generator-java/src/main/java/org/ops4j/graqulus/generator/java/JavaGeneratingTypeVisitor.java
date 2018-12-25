@@ -10,11 +10,11 @@ import java.nio.file.Path;
 import org.ops4j.graqulus.generator.trimou.TemplateEngine;
 import org.ops4j.graqulus.shared.OperationTypeRegistry;
 
-import graphql.language.EnumValueDefinition;
 import graphql.language.FieldDefinition;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLEnumType;
+import graphql.schema.GraphQLEnumValueDefinition;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLInputObjectField;
 import graphql.schema.GraphQLInputObjectType;
@@ -55,6 +55,7 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
             return TraversalControl.CONTINUE;
         }
         CompositeModel model = new CompositeModel();
+        model.setDescription(node.getDescription());
         model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
@@ -71,6 +72,7 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
 
     private void generateRootOperation(GraphQLObjectType node) {
         CompositeModel model = new CompositeModel();
+        model.setDescription(node.getDescription());
         model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
@@ -95,6 +97,7 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
     @Override
     public TraversalControl visitGraphQLInterfaceType(GraphQLInterfaceType node, TraverserContext<GraphQLType> ctx) {
         CompositeModel model = new CompositeModel();
+        model.setDescription(node.getDescription());
         model.setInterfaceType(node.getDefinition());
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
@@ -109,6 +112,7 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
     public TraversalControl visitGraphQLInputObjectType(GraphQLInputObjectType node,
             TraverserContext<GraphQLType> ctx) {
         CompositeModel model = new CompositeModel();
+        model.setDescription(node.getDescription());
         model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
@@ -125,6 +129,7 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
     @Override
     public TraversalControl visitGraphQLUnionType(GraphQLUnionType node, TraverserContext<GraphQLType> ctx) {
         CompositeModel model = new CompositeModel();
+        model.setDescription(node.getDescription());
         model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
@@ -144,10 +149,11 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
         }
 
         EnumModel model = new EnumModel();
+        model.setDescription(node.getDescription());
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
-        model.setValueNames(node.getDefinition().getEnumValueDefinitions().stream()
-                .map(EnumValueDefinition::getName)
+        model.setValueModels(node.getValues().stream()
+                .map(this::toEnumValueModel)
                 .collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("enum", model);
@@ -155,9 +161,14 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
         return TraversalControl.CONTINUE;
     }
 
+    private EnumValueModel toEnumValueModel(GraphQLEnumValueDefinition enumValue) {
+        return new EnumValueModel(enumValue.getName(), enumValue.getDescription());
+    }
+
     private FieldModel toFieldModel(GraphQLFieldDefinition fieldDefinition, GraphQLObjectType object) {
         FieldDefinition definition = fieldDefinition.getDefinition();
         FieldModel fieldModel = new FieldModel();
+        fieldModel.setDescription(fieldDefinition.getDescription());
         fieldModel.setFieldDefinition(definition);
         fieldModel.setFieldName(typeMapper.toJavaVariable(fieldDefinition.getName()));
         fieldModel.setType(typeMapper.toJavaType(fieldDefinition.getType()));
@@ -169,6 +180,7 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
 
     private FieldModel toFieldModel(GraphQLInputObjectField field) {
         FieldModel fieldModel = new FieldModel();
+        fieldModel.setDescription(field.getDescription());
         fieldModel.setFieldName(typeMapper.toJavaVariable(field.getName()));
         fieldModel.setType(typeMapper.toJavaType(field.getType()));
         return fieldModel;

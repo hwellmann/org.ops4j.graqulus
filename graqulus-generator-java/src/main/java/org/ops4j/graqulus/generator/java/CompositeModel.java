@@ -27,6 +27,8 @@ public class CompositeModel {
 
     private List<String> interfaces;
 
+    private String description;
+
     public CompositeModel() {
         this.date = ZonedDateTime.now().truncatedTo(SECONDS).format(ISO_OFFSET_DATE_TIME);
     }
@@ -81,6 +83,14 @@ public class CompositeModel {
 
     public void setInterfaces(List<String> interfaces) {
         this.interfaces = interfaces;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public Set<String> getImports() {

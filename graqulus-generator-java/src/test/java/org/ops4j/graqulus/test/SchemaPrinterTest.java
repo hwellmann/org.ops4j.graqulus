@@ -15,13 +15,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.ops4j.graqulus.generator.java.CompositeModel;
 import org.ops4j.graqulus.generator.java.EnumModel;
+import org.ops4j.graqulus.generator.java.EnumValueModel;
 import org.ops4j.graqulus.generator.java.FieldModel;
 import org.ops4j.graqulus.generator.java.JavaType;
 import org.ops4j.graqulus.generator.trimou.TemplateEngine;
 
 import graphql.language.Document;
 import graphql.language.EnumTypeDefinition;
-import graphql.language.EnumValueDefinition;
 import graphql.language.FieldDefinition;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.ListType;
@@ -109,8 +109,9 @@ public class SchemaPrinterTest {
         EnumModel interfaceModel = new EnumModel();
         interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
-        interfaceModel.setValueNames(
-                character.getEnumValueDefinitions().stream().map(EnumValueDefinition::getName).collect(toList()));
+        interfaceModel.setValueModels(character.getEnumValueDefinitions().stream()
+                .map(e -> new EnumValueModel(e.getName(), null))
+                .collect(toList()));
 
         TemplateEngine templateEngine = new TemplateEngine();
         String javaInterface = templateEngine.renderTemplate("enum", interfaceModel);

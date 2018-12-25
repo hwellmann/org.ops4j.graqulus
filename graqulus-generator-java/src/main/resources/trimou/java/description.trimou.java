@@ -1,0 +1,5 @@
+{{#description}}
+/**
+ * {{this}}
+ */
+{{/description}}
