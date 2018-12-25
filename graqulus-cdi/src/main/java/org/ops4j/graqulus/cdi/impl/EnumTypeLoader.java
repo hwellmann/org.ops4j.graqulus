@@ -5,34 +5,35 @@ import static org.ops4j.graqulus.shared.ReflectionHelper.writeField;
 
 import java.util.Map;
 
-import graphql.language.EnumTypeDefinition;
 import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLEnumValueDefinition;
 import graphql.schema.GraphQLSchema;
-import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.GraphQLType;
 import io.earcam.unexceptional.Exceptional;
 
 public class EnumTypeLoader {
 
     private static final String VALUE_DEFINITION_MAP = "valueDefinitionMap";
 
-    private TypeDefinitionRegistry registry;
     private GraphQLSchema executableSchema;
     private String modelPackage;
 
-    public EnumTypeLoader(TypeDefinitionRegistry registry, GraphQLSchema executableSchema, String modelPackage) {
-        this.registry = registry;
+    public EnumTypeLoader(GraphQLSchema executableSchema, String modelPackage) {
         this.executableSchema = executableSchema;
         this.modelPackage = modelPackage;
     }
 
     public void overrideEnumerationValues() {
-        registry.getTypes(EnumTypeDefinition.class).stream().map(EnumTypeDefinition::getName)
-                .forEach(this::overrideEnumValues);
+        executableSchema.getAllTypesAsList().stream()
+            .filter(t -> t instanceof GraphQLEnumType)
+            .forEach(this::overrideEnumValues);
     }
 
-    private void overrideEnumValues(String enumTypeName) {
-        GraphQLEnumType origEnumType = (GraphQLEnumType) executableSchema.getType(enumTypeName);
+    private void overrideEnumValues(GraphQLType type) {
+        GraphQLEnumType origEnumType = (GraphQLEnumType) type;
+        if (origEnumType.getDefinition() == null) {
+            return;
+        }
         GraphQLEnumType copiedEnumType = buildCopyWithJavaEnumValue(origEnumType);
 
         Map<String, GraphQLEnumValueDefinition> valueDefinitionMap = readField(copiedEnumType, VALUE_DEFINITION_MAP);
