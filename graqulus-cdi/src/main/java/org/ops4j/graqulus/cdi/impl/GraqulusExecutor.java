@@ -58,6 +58,7 @@ import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.schema.idl.TypeInfo;
 import graphql.schema.idl.TypeRuntimeWiring;
+import graphql.schema.idl.UnExecutableSchemaGenerator;
 import graphql.schema.idl.errors.SchemaProblem;
 
 @ApplicationScoped
@@ -82,7 +83,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private List<Exception> deploymentProblems = new ArrayList<>();
 
-    private Schema schema;
+    private Schema schemaAnnotation;
 
     public List<Exception> validateSchemaAndWiring() {
         findSchemaOnRootOperations();
@@ -92,7 +93,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
         executableSchema = new SchemaGenerator().makeExecutableSchema(registry, runtimeWiring);
 
-        EnumTypeLoader enumTypeLoader = new EnumTypeLoader(registry, executableSchema, schema.modelPackage());
+        EnumTypeLoader enumTypeLoader = new EnumTypeLoader(registry, executableSchema, schemaAnnotation.modelPackage());
         enumTypeLoader.overrideEnumerationValues();
 
         return deploymentProblems;
@@ -113,7 +114,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
             throw new DefinitionException("Multiple @Schema annotations found on classes " + classes);
         }
 
-        schema = typesWithSchema.get(0).getAnnotation(Schema.class);
+        schemaAnnotation = typesWithSchema.get(0).getAnnotation(Schema.class);
     }
 
     private boolean isResolvable(AnnotatedType<?> annotatedType) {
@@ -131,7 +132,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     }
 
     private void buildTypeDefinitionRegistry() {
-        String[] paths = schema.path();
+        String[] paths = schemaAnnotation.path();
         if (paths.length == 0) {
             throw new DefinitionException("@Schema annotation must contain at least one path argument");
         }
@@ -141,6 +142,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
             mainRegistry.merge(additionalRegistry);
         }
         registry = mainRegistry;
+        executableSchema = UnExecutableSchemaGenerator.makeUnExecutableSchema(registry);
     }
 
     private TypeDefinitionRegistry loadAndParseSchema(String schemaPath) {
@@ -161,7 +163,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
     }
 
     private void checkOperationRoots() {
-        operationTypeRegistry = new OperationTypeRegistry(registry);
+        operationTypeRegistry = new OperationTypeRegistry(executableSchema);
     }
 
     private void buildRuntimeWiring() {
@@ -193,7 +195,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private void addObjectTypes(Builder runtimeWiringBuilder) {
         for (ObjectTypeDefinition objectType : registry.getTypes(ObjectTypeDefinition.class)) {
-            if (operationTypeRegistry.isOperationType(objectType)) {
+            if (operationTypeRegistry.isOperationType(objectType.getName())) {
                 runtimeWiringBuilder.type(buildOperationTypeWiring(objectType));
             } else {
                 addObjectTypeWiring(runtimeWiringBuilder, objectType);
@@ -241,7 +243,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private TypeRuntimeWiring.Builder buildOperationTypeWiring(ObjectTypeDefinition objectType) {
         String typeName = objectType.getName();
-        String interfaceName = String.format("%s.%s", schema.modelPackage(), typeName);
+        String interfaceName = String.format("%s.%s", schemaAnnotation.modelPackage(), typeName);
 
         List<AnnotatedType<?>> annotatedTypes = scanResult.getRootOperations().stream()
                 .filter(this::isResolvable)

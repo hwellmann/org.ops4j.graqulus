@@ -4,14 +4,14 @@ import java.io.File;
 
 import org.ops4j.graqulus.generator.trimou.TemplateEngine;
 
-import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.GraphQLSchema;
 
 public class JavaContext {
 
     private JavaConfiguration config;
     private File packageDir;
-    private TypeDefinitionRegistry registry;
     private TemplateEngine templateEngine;
+    private GraphQLSchema schema;
 
     public JavaContext(JavaConfiguration config) {
         this.config = config;
@@ -29,19 +29,19 @@ public class JavaContext {
         this.packageDir = packageDir;
     }
 
-    public TypeDefinitionRegistry getRegistry() {
-        return registry;
-    }
-
-    public void setRegistry(TypeDefinitionRegistry registry) {
-        this.registry = registry;
-    }
-
     public TemplateEngine getTemplateEngine() {
         return templateEngine;
     }
 
     public void setTemplateEngine(TemplateEngine templateEngine) {
         this.templateEngine = templateEngine;
+    }
+
+    public GraphQLSchema getSchema() {
+        return schema;
+    }
+
+    public void setSchema(GraphQLSchema schema) {
+        this.schema = schema;
     }
 }

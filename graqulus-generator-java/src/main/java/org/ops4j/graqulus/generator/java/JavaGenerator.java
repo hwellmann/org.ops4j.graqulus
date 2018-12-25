@@ -51,12 +51,12 @@ public class JavaGenerator {
         File packageDir = new File(config.getTargetDir(), packagePath);
         createDirectoryIfNeeded(packageDir);
 
+        GraphQLSchema schema = UnExecutableSchemaGenerator.makeUnExecutableSchema(registry);
+
         TemplateEngine templateEngine = new TemplateEngine();
         context.setPackageDir(packageDir);
-        context.setRegistry(registry);
+        context.setSchema(schema);
         context.setTemplateEngine(templateEngine);
-
-        GraphQLSchema schema = UnExecutableSchemaGenerator.makeUnExecutableSchema(registry);
 
         GraphQLTypeVisitor visitor = new JavaGeneratingTypeVisitor(context);
         TypeTraverser traverser = new TypeTraverser();

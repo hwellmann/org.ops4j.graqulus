@@ -20,28 +20,28 @@ import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLInterfaceType;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLOutputType;
+import graphql.schema.GraphQLSchema;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeVisitorStub;
 import graphql.schema.GraphQLUnionType;
-import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import io.earcam.unexceptional.Exceptional;
 
 public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
 
-    private TypeDefinitionRegistry registry;
     private TemplateEngine templateEngine;
     private JavaContext context;
     private JavaTypeMapper typeMapper;
+    private GraphQLSchema schema;
     private OperationTypeRegistry operationTypeRegistry;
 
     public JavaGeneratingTypeVisitor(JavaContext javaContext) {
         this.context = javaContext;
         this.templateEngine = javaContext.getTemplateEngine();
-        this.registry = javaContext.getRegistry();
-        this.operationTypeRegistry = new OperationTypeRegistry(registry);
+        this.schema = javaContext.getSchema();
         this.typeMapper = new JavaTypeMapper();
+        this.operationTypeRegistry = new OperationTypeRegistry(schema);
     }
 
     @Override
