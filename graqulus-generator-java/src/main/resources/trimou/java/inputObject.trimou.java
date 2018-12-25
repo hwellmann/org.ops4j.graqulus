@@ -1,8 +1,7 @@
 package {{packageName}};
 
-{{#if listRequired}}
-import java.util.List;
-{{/if}}
+{{>imports}}
+
 import javax.annotation.Generated;
 {{#if notNullRequired}}
 import javax.validation.constraints.NotNull;
@@ -13,7 +12,7 @@ import javax.validation.constraints.NotNull;
 public class {{typeName}} {{>implements}} {
 
 {{#fieldModels}}
-    private {{&typeName}} {{fieldName}};    
+    private {{&type.name}} {{fieldName}};    
 {{/fieldModels}}
     
 {{#fieldModels}}

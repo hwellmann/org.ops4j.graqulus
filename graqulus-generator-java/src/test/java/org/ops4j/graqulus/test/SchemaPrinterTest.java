@@ -3,6 +3,7 @@ package org.ops4j.graqulus.test;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.awt.List;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.ops4j.graqulus.generator.java.CompositeModel;
 import org.ops4j.graqulus.generator.java.EnumModel;
 import org.ops4j.graqulus.generator.java.FieldModel;
+import org.ops4j.graqulus.generator.java.JavaType;
 import org.ops4j.graqulus.generator.trimou.TemplateEngine;
 
 import graphql.language.Document;
@@ -125,14 +127,11 @@ public class SchemaPrinterTest {
         FieldModel fieldModel = new FieldModel();
         fieldModel.setFieldDefinition(fieldDefinition);
         fieldModel.setFieldName(fieldDefinition.getName());
-        fieldModel.setTypeName(getJavaType(fieldDefinition.getType()));
-        if (fieldModel.getTypeName().startsWith("List<")) {
-            fieldModel.setListRequired(true);
-        }
+        fieldModel.setType(getJavaType(fieldDefinition.getType()));
         return fieldModel;
     }
 
-    private String getJavaType(Type<?> type) {
+    private JavaType getJavaType(Type<?> type) {
         if (type instanceof TypeName) {
             TypeName typeName = (TypeName) type;
             String javaName = typeName.getName();
@@ -141,7 +140,7 @@ public class SchemaPrinterTest {
                 javaName = mapScalarTypeName(scalarType.get());
             }
 
-            return javaName;
+            return new JavaType(javaName);
         }
         if (type instanceof NonNullType) {
             NonNullType nonNullType = (NonNullType) type;
@@ -149,7 +148,7 @@ public class SchemaPrinterTest {
         }
         if (type instanceof ListType) {
             ListType listType = (ListType) type;
-            return String.format("List<%s>", getJavaType(listType.getType()));
+            return new JavaType(String.format("List<%s>", getJavaType(listType.getType())), List.class.getName());
         }
         throw new IllegalArgumentException("unknown type");
     }

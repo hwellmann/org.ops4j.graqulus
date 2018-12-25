@@ -1,8 +1,8 @@
-    public {{&typeName}} {{getterName}}() {
+    public {{&type.name}} {{getterName}}() {
         return {{fieldName}};
     }
 
-    public void {{setterName}}({{&typeName}} {{fieldName}}) {
+    public void {{setterName}}({{&type.name}} {{fieldName}}) {
         this.{{fieldName}} = {{fieldName}};
     }
 

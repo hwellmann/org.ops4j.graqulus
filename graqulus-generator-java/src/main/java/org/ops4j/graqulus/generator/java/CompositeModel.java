@@ -5,6 +5,11 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
+
+import javax.annotation.Generated;
 
 import graphql.language.InterfaceTypeDefinition;
 
@@ -50,10 +55,6 @@ public class CompositeModel {
         this.fieldModels = fieldModels;
     }
 
-    public boolean isListRequired() {
-        return fieldModels.stream().anyMatch(FieldModel::isListRequired);
-    }
-
     public boolean isNonNullRequired() {
         return fieldModels.stream().anyMatch(FieldModel::isNotNullRequired);
     }
@@ -80,5 +81,16 @@ public class CompositeModel {
 
     public void setInterfaces(List<String> interfaces) {
         this.interfaces = interfaces;
+    }
+
+    public Set<String> getImports() {
+        Set<String> imports = new TreeSet<>();
+        imports.add(Generated.class.getName());
+        fieldModels.stream()
+                .map(FieldModel::getType)
+                .map(JavaType::getImportName)
+                .filter(Objects::nonNull)
+                .forEach(imports::add);
+        return imports;
     }
 }

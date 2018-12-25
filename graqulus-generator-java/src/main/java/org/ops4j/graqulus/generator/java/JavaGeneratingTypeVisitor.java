@@ -61,7 +61,7 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
         model.setFieldModels(node.getFieldDefinitions().stream()
                 .map(f -> toFieldModel(f, node)).collect(toList()));
         model.setInterfaces(node.getInterfaces().stream()
-                .map(typeMapper::toJavaType).collect(toList()));
+                .map(typeMapper::toJavaType).map(JavaType::getName).collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("object", model);
         writeJavaFile(javaInterface, node.getName());
@@ -77,7 +77,7 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
         model.setFieldModels(node.getFieldDefinitions().stream()
                 .map(f -> toFieldModel(f, node)).collect(toList()));
         model.setInterfaces(node.getInterfaces().stream()
-                .map(typeMapper::toJavaType).collect(toList()));
+                .map(typeMapper::toJavaType).map(JavaType::getName).collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("rootOperation", model);
         writeJavaFile(javaInterface, node.getName());
@@ -160,10 +160,7 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
         FieldModel fieldModel = new FieldModel();
         fieldModel.setFieldDefinition(definition);
         fieldModel.setFieldName(typeMapper.toJavaVariable(fieldDefinition.getName()));
-        fieldModel.setTypeName(typeMapper.toJavaType(fieldDefinition.getType()));
-        if (typeMapper.isListType(definition.getType())) {
-            fieldModel.setListRequired(true);
-        }
+        fieldModel.setType(typeMapper.toJavaType(fieldDefinition.getType()));
         fieldModel.setOverrideRequired(isOverride(definition, object));
         fieldModel.setInputValues(fieldDefinition.getArguments().stream()
                 .map(this::toInputValueModel).collect(toList()));
@@ -171,29 +168,26 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
     }
 
     private FieldModel toFieldModel(GraphQLInputObjectField field) {
-        String typeName = typeMapper.toJavaType(field.getType());
         FieldModel fieldModel = new FieldModel();
         fieldModel.setFieldName(typeMapper.toJavaVariable(field.getName()));
-        fieldModel.setTypeName(typeName);
-        if (typeMapper.isListType(field.getDefinition().getType())) {
-            fieldModel.setListRequired(true);
-        }
+        fieldModel.setType(typeMapper.toJavaType(field.getType()));
         return fieldModel;
     }
 
     private FieldModel toFieldModel(GraphQLType type) {
-        String typeName = typeMapper.toJavaType(type);
+        JavaType javaType = typeMapper.toJavaType(type);
+        String typeName = javaType.getName();
         String fieldName = typeName.substring(0, 1).toLowerCase() + typeName.substring(1);
         FieldModel fieldModel = new FieldModel();
         fieldModel.setFieldName(typeMapper.toJavaVariable(fieldName));
-        fieldModel.setTypeName(typeName);
+        fieldModel.setType(javaType);
         return fieldModel;
     }
 
     private InputValueModel toInputValueModel(GraphQLArgument argument) {
         InputValueModel inputValueModel = new InputValueModel();
         inputValueModel.setFieldName(typeMapper.toJavaVariable(argument.getName()));
-        inputValueModel.setTypeName(typeMapper.toJavaType(argument.getType()));
+        inputValueModel.setType(typeMapper.toJavaType(argument.getType()));
         return inputValueModel;
     }
 

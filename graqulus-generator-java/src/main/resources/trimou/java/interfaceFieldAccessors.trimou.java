@@ -1,4 +1,4 @@
-    {{&typeName}} {{getterName}}();
+    {{&type.name}} {{getterName}}();
 
-    void {{setterName}}({{&typeName}} {{fieldName}});
+    void {{setterName}}({{&type.name}} {{fieldName}});
 

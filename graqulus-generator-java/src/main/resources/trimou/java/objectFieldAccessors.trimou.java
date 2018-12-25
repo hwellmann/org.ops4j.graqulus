@@ -1,10 +1,10 @@
     {{>override}}
-    public {{&typeName}} {{getterName}}() {
+    public {{&type.name}} {{getterName}}() {
         return {{fieldName}};
     }
 
     {{>override}}
-    public void {{setterName}}({{&typeName}} {{fieldName}}) {
+    public void {{setterName}}({{&type.name}} {{fieldName}}) {
         this.{{fieldName}} = {{fieldName}};
     }
 

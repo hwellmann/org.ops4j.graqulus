@@ -1,6 +1,7 @@
 package org.ops4j.graqulus.generator.java;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -32,22 +33,21 @@ public class JavaTypeMapper {
         NON_NULL_SCALARS.put(Integer.class.getSimpleName(), int.class.getSimpleName());
     }
 
-    public String toJavaType(GraphQLType type) {
+    public JavaType toJavaType(GraphQLType type) {
         if (GraphQLTypeUtil.isNonNull(type)) {
             return toJavaType(GraphQLTypeUtil.unwrapOne(type));
         }
         if (GraphQLTypeUtil.isList(type)) {
-            String itemType = toJavaType(GraphQLTypeUtil.unwrapOne(type));
-            return String.format("List<%s>", itemType);
+            JavaType itemType = toJavaType(GraphQLTypeUtil.unwrapOne(type));
+            return new JavaType(String.format("List<%s>", itemType.getName()), List.class.getName());
         }
 
-        String javaName = type.getName();
         if (type instanceof GraphQLScalarType) {
             GraphQLScalarType scalarType = (GraphQLScalarType) type;
-            javaName = mapScalarTypeName(scalarType);
+            return mapScalarTypeName(scalarType);
         }
 
-        return javaName;
+        return new JavaType(type.getName());
     }
 
     public boolean isListType(Type<?> type) {
@@ -64,15 +64,18 @@ public class JavaTypeMapper {
         throw new IllegalArgumentException(type.getClass().getName());
     }
 
-    private String mapScalarTypeName(GraphQLScalarType scalarType) {
+    private JavaType mapScalarTypeName(GraphQLScalarType scalarType) {
         Optional<String> javaClassName = getJavaClassName(scalarType);
         if (javaClassName.isPresent()) {
-            return javaClassName.get();
+            String fullName = javaClassName.get();
+            int dot = fullName.lastIndexOf('.');
+            String simpleName = fullName.substring(dot + 1);
+            return new JavaType(simpleName, fullName);
         }
 
         String gqlName = scalarType.getName();
         String fallback = String.format("String /* %s */", gqlName);
-        return BUILT_IN_SCALARS.getOrDefault(gqlName, fallback);
+        return new JavaType(BUILT_IN_SCALARS.getOrDefault(gqlName, fallback));
     }
 
     private Optional<String> getJavaClassName(GraphQLScalarType scalarType) {

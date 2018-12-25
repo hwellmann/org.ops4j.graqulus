@@ -1,7 +1,6 @@
 package org.ops4j.graqulus.generator.java;
 
 import java.util.List;
-import java.util.Objects;
 
 import graphql.language.FieldDefinition;
 
@@ -9,9 +8,8 @@ public class FieldModel {
 
     private FieldDefinition fieldDefinition;
     private String fieldName;
-    private String typeName;
+    private JavaType type;
     private boolean notNullRequired;
-    private boolean listRequired;
     private boolean overrideRequired;
     private List<InputValueModel> inputValues;
 
@@ -22,7 +20,6 @@ public class FieldModel {
     public void setFieldDefinition(FieldDefinition fieldDefinition) {
         this.fieldDefinition = fieldDefinition;
     }
-
     public String getFieldName() {
         return fieldName;
     }
@@ -31,13 +28,12 @@ public class FieldModel {
         this.fieldName = fieldName;
     }
 
-    public String getTypeName() {
-        return typeName;
+    public JavaType getType() {
+        return type;
     }
 
-    public void setTypeName(String typeName) {
-        Objects.requireNonNull(typeName);
-        this.typeName = typeName;
+    public void setType(JavaType type) {
+        this.type = type;
     }
 
     public boolean isNotNullRequired() {
@@ -46,14 +42,6 @@ public class FieldModel {
 
     public void setNotNullRequired(boolean notNullRequired) {
         this.notNullRequired = notNullRequired;
-    }
-
-    public boolean isListRequired() {
-        return listRequired;
-    }
-
-    public void setListRequired(boolean listRequired) {
-        this.listRequired = listRequired;
     }
 
     public boolean isOverrideRequired() {
@@ -73,7 +61,7 @@ public class FieldModel {
     }
 
     public String getGetterName() {
-        String prefix = typeName.equals("boolean") ? "is" : "get";
+        String prefix = type.getName().equals("boolean") ? "is" : "get";
         return getAccessorName(prefix);
     }
 

@@ -1,12 +1,11 @@
-    public {{&typeName}} {{getterName}}() {
-        if (value instanceof {{&typeName}}) {
-			return ({{&typeName}}) value;
+    public {{&type.name}} {{getterName}}() {
+        if (value instanceof {{&type.name}}) {
+			return ({{&type.name}}) value;
 		}
         return null;
     }
 
-
-    public void {{setterName}}({{&typeName}} {{fieldName}}) {
+    public void {{setterName}}({{&type.name}} {{fieldName}}) {
         this.value = {{fieldName}};
     }
 

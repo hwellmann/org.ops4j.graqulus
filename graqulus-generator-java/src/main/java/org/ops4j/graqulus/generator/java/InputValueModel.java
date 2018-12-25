@@ -1,8 +1,9 @@
 package org.ops4j.graqulus.generator.java;
 
 public class InputValueModel {
+
     private String fieldName;
-    private String typeName;
+    private JavaType type;
 
     public String getFieldName() {
         return fieldName;
@@ -12,11 +13,11 @@ public class InputValueModel {
         this.fieldName = fieldName;
     }
 
-    public String getTypeName() {
-        return typeName;
+    public JavaType getType() {
+        return type;
     }
 
-    public void setTypeName(String typeName) {
-        this.typeName = typeName;
+    public void setType(JavaType type) {
+        this.type = type;
     }
 }
