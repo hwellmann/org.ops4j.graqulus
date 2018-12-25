@@ -2,6 +2,7 @@ package org.ops4j.graqulus.maven;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import javax.inject.Inject;
 
@@ -21,9 +22,9 @@ import org.sonatype.plexus.build.incremental.BuildContext;
  */
 public abstract class AbstractJavaMojo extends AbstractMojo {
 
-    /** RAML specification file. */
+    /** GraphQL schema files. */
     @Parameter(required = true)
-    protected String model;
+    protected List<String> models;
 
     @Parameter(readonly = true, defaultValue = "${project}")
     protected MavenProject project;
@@ -42,10 +43,10 @@ public abstract class AbstractJavaMojo extends AbstractMojo {
      * @throws MojoFailureException
      */
     protected void generateJavaSources() throws MojoFailureException {
-        if (buildContext.hasDelta(model)) {
-            getLog().info("Generating Java model from " + model);
+        if (buildContext.hasDelta(models)) {
+            getLog().info("Generating Java model from " + models);
             JavaConfiguration config = new JavaConfiguration();
-            config.setSourceFile(model);
+            config.setSourceFiles(models);
             config.setBasePackage(packageName);
             config.setTargetDir(getOutputDir().toString());
 

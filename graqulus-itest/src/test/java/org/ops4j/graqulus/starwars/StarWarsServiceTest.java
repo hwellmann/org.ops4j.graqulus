@@ -1,4 +1,4 @@
-package org.ops4j.graqulus.cdi.starwars;
+package org.ops4j.graqulus.starwars;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

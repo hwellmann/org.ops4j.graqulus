@@ -41,4 +41,8 @@ public class OperationTypeRegistry {
     public boolean isOperationType(ObjectTypeDefinition objectType) {
         return operationTypeMap.values().contains(objectType.getName());
     }
+
+    public boolean isOperationType(String objectTypeName) {
+        return operationTypeMap.values().contains(objectTypeName);
+    }
 }

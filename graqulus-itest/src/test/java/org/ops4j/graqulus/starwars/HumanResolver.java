@@ -1,4 +1,4 @@
-package org.ops4j.graqulus.cdi.starwars;
+package org.ops4j.graqulus.starwars;
 
 import javax.enterprise.context.Dependent;
 

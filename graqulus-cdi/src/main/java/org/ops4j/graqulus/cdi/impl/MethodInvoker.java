@@ -21,7 +21,7 @@ public class MethodInvoker {
     @Inject
     private Instance<Object> instance;
 
-    public Object invokeQueryMethod(GraqulusExecutor graqulusExecutor, AnnotatedMethod<?> queryMethod,
+    public Object invokeQueryMethod(AnnotatedMethod<?> queryMethod,
             DataFetchingEnvironment env)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         Object service = instance.select(queryMethod.getDeclaringType().getJavaClass()).get();

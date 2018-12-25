@@ -33,19 +33,23 @@ import org.ops4j.graqulus.cdi.api.ExecutionRootFactory;
 import org.ops4j.graqulus.cdi.api.IdPropertyStrategy;
 import org.ops4j.graqulus.cdi.api.Resolver;
 import org.ops4j.graqulus.cdi.api.Schema;
+import org.ops4j.graqulus.cdi.api.Serializer;
 import org.ops4j.graqulus.shared.OperationTypeRegistry;
 import org.ops4j.graqulus.shared.ReflectionHelper;
 
 import graphql.GraphQL;
 import graphql.TypeResolutionEnvironment;
+import graphql.language.Directive;
 import graphql.language.FieldDefinition;
 import graphql.language.InterfaceTypeDefinition;
 import graphql.language.ObjectTypeDefinition;
 import graphql.language.ScalarTypeDefinition;
+import graphql.language.StringValue;
 import graphql.language.TypeDefinition;
 import graphql.language.UnionTypeDefinition;
 import graphql.schema.DataFetcher;
 import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.RuntimeWiring.Builder;
@@ -203,14 +207,36 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         }
     }
 
-    private void addScalarType(Builder runtimeWiringBuilder, ScalarTypeDefinition scalarType) {
-        if (isBuiltIn(scalarType)) {
-            runtimeWiringBuilder.scalar(newScalar(GraphQLString).name(scalarType.getName()).build());
+    private void addScalarType(Builder runtimeWiringBuilder, ScalarTypeDefinition scalarTypeDef) {
+        if (isBuiltIn(scalarTypeDef)) {
+            return;
         }
+
+        Optional<String> javaClassName = getJavaClassName(scalarTypeDef);
+        if (javaClassName.isPresent()) {
+            Bean<?> serializerBean = scanResult.getSerializer(javaClassName.get());
+            if (serializerBean != null) {
+                Serializer<?, ?> serializer =
+                        (Serializer<?, ?>) instance.select(serializerBean.getBeanClass()).get();
+                CoercingWrapper<?, ?> wrapper = new CoercingWrapper<>(serializer);
+                GraphQLScalarType scalarType = newScalar().name(scalarTypeDef.getName()).coercing(wrapper).build();
+                runtimeWiringBuilder.scalar(scalarType).build();
+            }
+        }
+        runtimeWiringBuilder.scalar(newScalar(GraphQLString).name(scalarTypeDef.getName()).build());
+    }
+
+    private Optional<String> getJavaClassName(ScalarTypeDefinition scalarType) {
+        Directive directive = scalarType.getDirective("javaClass");
+        if (directive == null) {
+            return Optional.empty();
+        }
+        StringValue directiveValue = (StringValue) directive.getArgument("name").getValue();
+        return Optional.of(directiveValue.getValue());
     }
 
     private boolean isBuiltIn(ScalarTypeDefinition scalarType) {
-        return scalarType.getSourceLocation() != null;
+        return scalarType.getSourceLocation() == null;
     }
 
     private TypeRuntimeWiring.Builder buildOperationTypeWiring(ObjectTypeDefinition objectType) {
@@ -356,7 +382,7 @@ public class GraqulusExecutor implements ExecutionRootFactory {
                     operationType.getJavaClass().getName(), query.getName()));
         }
 
-        return env -> methodInvoker.invokeQueryMethod(this, queryMethods.get(0), env);
+        return env -> methodInvoker.invokeQueryMethod(queryMethods.get(0), env);
     }
 
     private DataLoaderRegistry buildDataLoaderRegistry() {
@@ -374,4 +400,6 @@ public class GraqulusExecutor implements ExecutionRootFactory {
             return DataLoader.newDataLoader(new AsyncBatchLoader<>(service, method.getJavaMember()));
         }
     }
+
+
 }

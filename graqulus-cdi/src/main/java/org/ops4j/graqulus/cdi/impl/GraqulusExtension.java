@@ -18,6 +18,7 @@ import javax.enterprise.inject.spi.WithAnnotations;
 import org.ops4j.graqulus.cdi.api.BatchLoader;
 import org.ops4j.graqulus.cdi.api.Resolver;
 import org.ops4j.graqulus.cdi.api.RootOperation;
+import org.ops4j.graqulus.cdi.api.Serializer;
 
 public class GraqulusExtension implements Extension {
 
@@ -43,6 +44,16 @@ public class GraqulusExtension implements Extension {
         scanResult.registerTypeResolver(typeName, event.getBean());
     }
 
+    <T extends Serializer<?, ?>> void processSerializer(@Observes ProcessBean<T> event) {
+        Set<Type> closure = event.getBean().getTypes();
+        Type serializer = closure.stream().filter(this::isSerializer).findFirst().get();
+        ParameterizedType paramType = (ParameterizedType) serializer;
+        Class<?> objectType = (Class<?>) paramType.getActualTypeArguments()[0];
+
+        String javaClassName = objectType.getName();
+        scanResult.registerSerializer(javaClassName, event.getBean());
+    }
+
     void afterBeanDiscovery(@Observes AfterBeanDiscovery event) {
         event.addBean()
                 .addType(ClassScanResult.class)
@@ -65,4 +76,15 @@ public class GraqulusExtension implements Extension {
         }
         return false;
     }
+
+    private boolean isSerializer(Type type) {
+        if (type instanceof ParameterizedType) {
+            ParameterizedType paramType = (ParameterizedType) type;
+            if (paramType.getRawType() == Serializer.class) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

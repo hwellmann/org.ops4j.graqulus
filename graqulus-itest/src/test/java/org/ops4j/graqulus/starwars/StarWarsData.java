@@ -25,11 +25,11 @@ public class StarWarsData {
     public static Droid threepio = new Droid();
     public static Droid artoo = new Droid();
 
-    private static Map<Episode, Character> heroes = new HashMap<>();
-    private static List<Human> humans = Arrays.asList(luke, vader, han, leia, tarkin);
-    private static List<Droid> droids = Arrays.asList(threepio, artoo);
-    private static Map<String, Character> characters;
-    private static Map<Episode, LocalDate> launchDates = new HashMap<>();
+    public static Map<Episode, Character> heroes = new HashMap<>();
+    public static List<Human> humans = Arrays.asList(luke, vader, han, leia, tarkin);
+    public static List<Droid> droids = Arrays.asList(threepio, artoo);
+    public static Map<String, Character> characters;
+    public static Map<Episode, LocalDate> launchDates = new HashMap<>();
 
     static {
         luke.setId("1000");
@@ -37,6 +37,7 @@ public class StarWarsData {
         luke.setFriends(Arrays.asList(han, leia, threepio, artoo));
         luke.setAppearsIn(Arrays.asList(NEWHOPE, EMPIRE, JEDI));
         luke.setHomePlanet("Tatooine");
+        luke.setFather(vader);
 
         vader.setId("1001");
         vader.setName("Darth Vader");

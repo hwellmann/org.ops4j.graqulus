@@ -6,10 +6,12 @@ import java.util.Optional;
 
 import graphql.language.ListType;
 import graphql.language.NonNullType;
-import graphql.language.ScalarTypeDefinition;
 import graphql.language.Type;
 import graphql.language.TypeName;
-import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.GraphQLDirective;
+import graphql.schema.GraphQLScalarType;
+import graphql.schema.GraphQLType;
+import graphql.schema.GraphQLTypeUtil;
 
 public class JavaTypeMapper {
 
@@ -30,33 +32,22 @@ public class JavaTypeMapper {
         NON_NULL_SCALARS.put(Integer.class.getSimpleName(), int.class.getSimpleName());
     }
 
-    private TypeDefinitionRegistry registry;
-
-    public JavaTypeMapper(TypeDefinitionRegistry registry) {
-        this.registry = registry;
-    }
-
-    public String toJavaType(Type<?> type) {
-        if (type instanceof TypeName) {
-            TypeName typeName = (TypeName) type;
-            String javaName = typeName.getName();
-            Optional<ScalarTypeDefinition> scalarType = registry.getType(javaName, ScalarTypeDefinition.class);
-            if (scalarType.isPresent()) {
-                javaName = mapScalarTypeName(scalarType.get());
-            }
-
-            return javaName;
+    public String toJavaType(GraphQLType type) {
+        if (GraphQLTypeUtil.isNonNull(type)) {
+            return toJavaType(GraphQLTypeUtil.unwrapOne(type));
         }
-        if (type instanceof NonNullType) {
-            NonNullType nonNullType = (NonNullType) type;
-            String nullableType = toJavaType(nonNullType.getType());
-            return NON_NULL_SCALARS.getOrDefault(nullableType, nullableType);
+        if (GraphQLTypeUtil.isList(type)) {
+            String itemType = toJavaType(GraphQLTypeUtil.unwrapOne(type));
+            return String.format("List<%s>", itemType);
         }
-        if (type instanceof ListType) {
-            ListType listType = (ListType) type;
-            return String.format("List<%s>", toJavaType(listType.getType()));
+
+        String javaName = type.getName();
+        if (type instanceof GraphQLScalarType) {
+            GraphQLScalarType scalarType = (GraphQLScalarType) type;
+            javaName = mapScalarTypeName(scalarType);
         }
-        throw new IllegalArgumentException(type.getClass().getName());
+
+        return javaName;
     }
 
     public boolean isListType(Type<?> type) {
@@ -73,10 +64,24 @@ public class JavaTypeMapper {
         throw new IllegalArgumentException(type.getClass().getName());
     }
 
-    private String mapScalarTypeName(ScalarTypeDefinition scalarType) {
+    private String mapScalarTypeName(GraphQLScalarType scalarType) {
+        Optional<String> javaClassName = getJavaClassName(scalarType);
+        if (javaClassName.isPresent()) {
+            return javaClassName.get();
+        }
+
         String gqlName = scalarType.getName();
         String fallback = String.format("String /* %s */", gqlName);
         return BUILT_IN_SCALARS.getOrDefault(gqlName, fallback);
+    }
+
+    private Optional<String> getJavaClassName(GraphQLScalarType scalarType) {
+        GraphQLDirective directive = scalarType.getDirective("javaClass");
+        if (directive == null) {
+            return Optional.empty();
+        }
+        String directiveValue = (String) directive.getArgument("name").getValue();
+        return Optional.of(directiveValue);
     }
 
     public String toJavaVariable(String name) {

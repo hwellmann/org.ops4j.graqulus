@@ -23,6 +23,9 @@ public class ClassScanResult {
     /** Maps GraphQL types to type resolver beans. */
     private Map<String, Bean<?>> typeResolverMap = new HashMap<>();
 
+    /** Maps Java class names to serializers */
+    private Map<String, Bean<?>> serializerMap = new HashMap<>();
+
     public void registerRootOperation(AnnotatedType<?> rootOperation) {
         rootOperations.add(rootOperation);
     }
@@ -47,7 +50,14 @@ public class ClassScanResult {
     public void registerTypeResolver(String typeName, Bean<?> bean) {
         Bean<?> previous = typeResolverMap.putIfAbsent(typeName, bean);
         if (previous != null) {
-            throw new DefinitionException("duplicate type resolver class");
+            throw new DefinitionException("Duplicate type resolver class");
+        }
+    }
+
+    public void registerSerializer(String javaClassName, Bean<?> bean) {
+        Bean<?> previous = serializerMap.putIfAbsent(javaClassName, bean);
+        if (previous != null) {
+            throw new DefinitionException("Duplicate serializer for class " + javaClassName);
         }
     }
 
@@ -61,6 +71,10 @@ public class ClassScanResult {
 
     public Bean<?> getTypeResolver(String typeName) {
         return typeResolverMap.get(typeName);
+    }
+
+    public Bean<?> getSerializer(String javaClassName) {
+        return typeResolverMap.get(javaClassName);
     }
 
     public List<AnnotatedType<?>> getRootOperations() {

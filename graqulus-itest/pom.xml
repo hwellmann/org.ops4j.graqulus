@@ -26,6 +26,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.ops4j.graqulus</groupId>
+            <artifactId>graqulus-generator-java</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.graphql-java</groupId>
             <artifactId>graphql-java</artifactId>
         </dependency>
@@ -150,7 +155,11 @@
                         </goals>
                         <configuration>
                             <package>org.ops4j.graqulus.starwars</package>
-                            <model>${basedir}/../graqulus-generator-java/src/test/resources/starWarsSchemaAnnotated.graphqls</model>
+                            <models>
+                                <model>${basedir}/src/test/resources/starWars.graphqls</model>
+                                <model>${basedir}/src/test/resources/starWarsDirectives.graphqls</model>
+                                <model>${basedir}/src/test/resources/starWarsExtensions.graphqls</model>
+                            </models>
                         </configuration>
                     </execution>
                     <execution>
@@ -160,7 +169,9 @@
                         </goals>
                         <configuration>
                             <package>org.ops4j.graqulus.github</package>
-                            <model>${basedir}/src/test/resources/githubPartial.graphqls</model>
+                            <models>
+                                <model>${basedir}/src/test/resources/githubPartial.graphqls</model>
+                            </models>
                         </configuration>
                     </execution>
                     <execution>
@@ -170,7 +181,9 @@
                         </goals>
                         <configuration>
                             <package>org.ops4j.graqulus.githubfull</package>
-                            <model>${basedir}/src/test/resources/github.graphqls</model>
+                            <models>
+                                <model>${basedir}/src/test/resources/github.graphqls</model>
+                            </models>
                         </configuration>
                     </execution>
                 </executions>

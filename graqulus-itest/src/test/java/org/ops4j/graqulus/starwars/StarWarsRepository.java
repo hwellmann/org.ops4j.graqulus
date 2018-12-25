@@ -1,4 +1,4 @@
-package org.ops4j.graqulus.cdi.starwars;
+package org.ops4j.graqulus.starwars;
 
 import static java.util.stream.Collectors.toList;
 
@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public class StarWarsRepository {
-    
+
     private static Logger log = LoggerFactory.getLogger(StarWarsRepository.class);
 
 	public Character findHero(Episode episode) {
@@ -37,11 +37,11 @@ public class StarWarsRepository {
         log.debug("findCharacters ids = {}", ids);
         return ids.stream().map(this::findCharacter).collect(toList());
     }
-    
+
     @BatchLoader
     public List<Human> findHumans(List<String> ids) {
         log.debug("findHumans ids = {}", ids);
         return ids.stream().map(this::findHuman).collect(toList());
     }
-    
+
 }

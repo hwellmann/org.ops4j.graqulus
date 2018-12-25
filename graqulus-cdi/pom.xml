@@ -87,7 +87,9 @@
                         </goals>
                         <configuration>
                             <package>org.ops4j.graqulus.cdi.starwars</package>
-                            <model>${basedir}/src/test/resources/starWars.graphqls</model>
+                            <models>
+                                <model>${basedir}/src/test/resources/starWars.graphqls</model>
+                            </models>
                         </configuration>
                     </execution>
                 </executions>

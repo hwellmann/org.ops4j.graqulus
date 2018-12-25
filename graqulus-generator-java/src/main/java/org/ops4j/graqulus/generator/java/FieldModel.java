@@ -1,6 +1,7 @@
 package org.ops4j.graqulus.generator.java;
 
 import java.util.List;
+import java.util.Objects;
 
 import graphql.language.FieldDefinition;
 
@@ -35,6 +36,7 @@ public class FieldModel {
     }
 
     public void setTypeName(String typeName) {
+        Objects.requireNonNull(typeName);
         this.typeName = typeName;
     }
 

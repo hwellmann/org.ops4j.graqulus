@@ -10,24 +10,26 @@ import java.nio.file.Path;
 import org.ops4j.graqulus.generator.trimou.TemplateEngine;
 import org.ops4j.graqulus.shared.OperationTypeRegistry;
 
-import graphql.language.EnumTypeDefinition;
 import graphql.language.EnumValueDefinition;
 import graphql.language.FieldDefinition;
-import graphql.language.InputObjectTypeDefinition;
-import graphql.language.InputValueDefinition;
 import graphql.language.InterfaceTypeDefinition;
-import graphql.language.Node;
-import graphql.language.NodeVisitorStub;
-import graphql.language.ObjectTypeDefinition;
-import graphql.language.Type;
-import graphql.language.UnionTypeDefinition;
+import graphql.schema.GraphQLArgument;
+import graphql.schema.GraphQLEnumType;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLInputObjectField;
+import graphql.schema.GraphQLInputObjectType;
+import graphql.schema.GraphQLInterfaceType;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLOutputType;
+import graphql.schema.GraphQLType;
+import graphql.schema.GraphQLTypeVisitorStub;
+import graphql.schema.GraphQLUnionType;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import io.earcam.unexceptional.Exceptional;
 
-@SuppressWarnings("rawtypes")
-public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
+public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
 
     private TypeDefinitionRegistry registry;
     private TemplateEngine templateEngine;
@@ -35,17 +37,20 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     private JavaTypeMapper typeMapper;
     private OperationTypeRegistry operationTypeRegistry;
 
-    public JavaGeneratingNodeVisitor(JavaContext javaContext) {
+    public JavaGeneratingTypeVisitor(JavaContext javaContext) {
         this.context = javaContext;
         this.templateEngine = javaContext.getTemplateEngine();
         this.registry = javaContext.getRegistry();
         this.operationTypeRegistry = new OperationTypeRegistry(registry);
-        this.typeMapper = new JavaTypeMapper(registry);
+        this.typeMapper = new JavaTypeMapper();
     }
 
     @Override
-    public TraversalControl visitObjectTypeDefinition(ObjectTypeDefinition node, TraverserContext<Node> ctx) {
-        if (operationTypeRegistry.isOperationType(node)) {
+    public TraversalControl visitGraphQLObjectType(GraphQLObjectType node, TraverserContext<GraphQLType> ctx) {
+        if (node.getDefinition() == null) {
+            return TraversalControl.CONTINUE;
+        }
+        if (operationTypeRegistry.isOperationType(node.getName())) {
             generateRootOperation(node);
             return TraversalControl.CONTINUE;
         }
@@ -55,7 +60,8 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         model.setTypeName(node.getName());
         model.setFieldModels(node.getFieldDefinitions().stream()
                 .map(f -> toFieldModel(f, node)).collect(toList()));
-        model.setInterfaces(node.getImplements().stream().map(typeMapper::toJavaType).collect(toList()));
+        model.setInterfaces(node.getInterfaces().stream()
+                .map(typeMapper::toJavaType).collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("object", model);
         writeJavaFile(javaInterface, node.getName());
@@ -63,14 +69,15 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         return TraversalControl.CONTINUE;
     }
 
-    private void generateRootOperation(ObjectTypeDefinition node) {
+    private void generateRootOperation(GraphQLObjectType node) {
         CompositeModel model = new CompositeModel();
         model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
         model.setFieldModels(node.getFieldDefinitions().stream()
                 .map(f -> toFieldModel(f, node)).collect(toList()));
-        model.setInterfaces(node.getImplements().stream().map(typeMapper::toJavaType).collect(toList()));
+        model.setInterfaces(node.getInterfaces().stream()
+                .map(typeMapper::toJavaType).collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("rootOperation", model);
         writeJavaFile(javaInterface, node.getName());
@@ -86,9 +93,9 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     }
 
     @Override
-    public TraversalControl visitInterfaceTypeDefinition(InterfaceTypeDefinition node, TraverserContext<Node> ctx) {
+    public TraversalControl visitGraphQLInterfaceType(GraphQLInterfaceType node, TraverserContext<GraphQLType> ctx) {
         CompositeModel model = new CompositeModel();
-        model.setInterfaceType(node);
+        model.setInterfaceType(node.getDefinition());
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
         model.setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, null)).collect(toList()));
@@ -99,13 +106,15 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     }
 
     @Override
-    public TraversalControl visitInputObjectTypeDefinition(InputObjectTypeDefinition node,
-            TraverserContext<Node> ctx) {
+    public TraversalControl visitGraphQLInputObjectType(GraphQLInputObjectType node,
+            TraverserContext<GraphQLType> ctx) {
         CompositeModel model = new CompositeModel();
         model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
-        model.setFieldModels(node.getInputValueDefinitions().stream().map(f -> toFieldModel(f)).collect(toList()));
+        model.setFieldModels(node.getFieldDefinitions().stream()
+                .map(f -> toFieldModel(f))
+                .collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("inputObject", model);
         writeJavaFile(javaInterface, node.getName());
@@ -114,12 +123,13 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     }
 
     @Override
-    public TraversalControl visitUnionTypeDefinition(UnionTypeDefinition node, TraverserContext<Node> ctx) {
+    public TraversalControl visitGraphQLUnionType(GraphQLUnionType node, TraverserContext<GraphQLType> ctx) {
         CompositeModel model = new CompositeModel();
         model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
-        model.setFieldModels(node.getMemberTypes().stream().map(m -> toFieldModel(m)).collect(toList()));
+        model.setFieldModels(
+                node.getTypes().stream().map(m -> toFieldModel(m)).collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("union", model);
         writeJavaFile(javaInterface, node.getName());
@@ -128,65 +138,71 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
     }
 
     @Override
-    public TraversalControl visitEnumTypeDefinition(EnumTypeDefinition node, TraverserContext<Node> ctx) {
+    public TraversalControl visitGraphQLEnumType(GraphQLEnumType node, TraverserContext<GraphQLType> ctx) {
+        if (node.getDefinition() == null) {
+            return TraversalControl.CONTINUE;
+        }
 
         EnumModel model = new EnumModel();
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
-        model.setValueNames(
-                node.getEnumValueDefinitions().stream().map(EnumValueDefinition::getName).collect(toList()));
+        model.setValueNames(node.getDefinition().getEnumValueDefinitions().stream()
+                .map(EnumValueDefinition::getName)
+                .collect(toList()));
 
         String javaInterface = templateEngine.renderTemplate("enum", model);
         writeJavaFile(javaInterface, node.getName());
         return TraversalControl.CONTINUE;
     }
 
-    private FieldModel toFieldModel(FieldDefinition fieldDefinition, ObjectTypeDefinition object) {
+    private FieldModel toFieldModel(GraphQLFieldDefinition fieldDefinition, GraphQLObjectType object) {
+        FieldDefinition definition = fieldDefinition.getDefinition();
         FieldModel fieldModel = new FieldModel();
-        fieldModel.setFieldDefinition(fieldDefinition);
+        fieldModel.setFieldDefinition(definition);
         fieldModel.setFieldName(typeMapper.toJavaVariable(fieldDefinition.getName()));
         fieldModel.setTypeName(typeMapper.toJavaType(fieldDefinition.getType()));
-        if (typeMapper.isListType(fieldDefinition.getType())) {
+        if (typeMapper.isListType(definition.getType())) {
             fieldModel.setListRequired(true);
         }
-        fieldModel.setOverrideRequired(isOverride(fieldDefinition, object));
-        fieldModel.setInputValues(fieldDefinition.getInputValueDefinitions().stream()
+        fieldModel.setOverrideRequired(isOverride(definition, object));
+        fieldModel.setInputValues(fieldDefinition.getArguments().stream()
                 .map(this::toInputValueModel).collect(toList()));
         return fieldModel;
     }
 
-    private FieldModel toFieldModel(Type type) {
-        String typeName = typeMapper.toJavaType(type);
-        String fieldName = typeName.substring(0, 1).toLowerCase() + typeName.substring(1);
+    private FieldModel toFieldModel(GraphQLInputObjectField field) {
+        String typeName = typeMapper.toJavaType(field.getType());
         FieldModel fieldModel = new FieldModel();
-        fieldModel.setFieldName(fieldName);
+        fieldModel.setFieldName(typeMapper.toJavaVariable(field.getName()));
         fieldModel.setTypeName(typeName);
-        return fieldModel;
-    }
-
-    private InputValueModel toInputValueModel(InputValueDefinition inputValueDefinition) {
-        InputValueModel inputValueModel = new InputValueModel();
-        inputValueModel.setFieldName(typeMapper.toJavaVariable(inputValueDefinition.getName()));
-        inputValueModel.setTypeName(typeMapper.toJavaType(inputValueDefinition.getType()));
-        return inputValueModel;
-    }
-
-    private FieldModel toFieldModel(InputValueDefinition inputValueDefinition) {
-        FieldModel fieldModel = new FieldModel();
-        fieldModel.setFieldName(typeMapper.toJavaVariable(inputValueDefinition.getName()));
-        fieldModel.setTypeName(typeMapper.toJavaType(inputValueDefinition.getType()));
-        if (typeMapper.isListType(inputValueDefinition.getType())) {
+        if (typeMapper.isListType(field.getDefinition().getType())) {
             fieldModel.setListRequired(true);
         }
         return fieldModel;
     }
 
-    private boolean isOverride(FieldDefinition fieldDefinition, ObjectTypeDefinition object) {
+    private FieldModel toFieldModel(GraphQLType type) {
+        String typeName = typeMapper.toJavaType(type);
+        String fieldName = typeName.substring(0, 1).toLowerCase() + typeName.substring(1);
+        FieldModel fieldModel = new FieldModel();
+        fieldModel.setFieldName(typeMapper.toJavaVariable(fieldName));
+        fieldModel.setTypeName(typeName);
+        return fieldModel;
+    }
+
+    private InputValueModel toInputValueModel(GraphQLArgument argument) {
+        InputValueModel inputValueModel = new InputValueModel();
+        inputValueModel.setFieldName(typeMapper.toJavaVariable(argument.getName()));
+        inputValueModel.setTypeName(typeMapper.toJavaType(argument.getType()));
+        return inputValueModel;
+    }
+
+    private boolean isOverride(FieldDefinition fieldDefinition, GraphQLObjectType object) {
         if (object == null) {
             return false;
         }
         String fieldName = fieldDefinition.getName();
-        for (Type interfaceType : object.getImplements()) {
+        for (GraphQLOutputType interfaceType : object.getInterfaces()) {
             if (hasField(interfaceType, fieldName)) {
                 return true;
             }
@@ -194,9 +210,9 @@ public class JavaGeneratingNodeVisitor extends NodeVisitorStub {
         return false;
     }
 
-    private boolean hasField(Type interfaceType, String fieldName) {
-        String interfaceName = typeMapper.toJavaType(interfaceType);
-        InterfaceTypeDefinition interfaceDefinition = registry.getType(interfaceName, InterfaceTypeDefinition.class)
+    private boolean hasField(GraphQLOutputType interfaceType, String fieldName) {
+        InterfaceTypeDefinition interfaceDefinition = registry
+                .getType(interfaceType.getName(), InterfaceTypeDefinition.class)
                 .get();
         return interfaceDefinition.getFieldDefinitions().stream().map(FieldDefinition::getName)
                 .anyMatch(fieldName::equals);

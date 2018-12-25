@@ -1,6 +1,7 @@
 package org.ops4j.graqulus.test;
 
 import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,9 +12,9 @@ import java.util.Scanner;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.ops4j.graqulus.generator.java.CompositeModel;
 import org.ops4j.graqulus.generator.java.EnumModel;
 import org.ops4j.graqulus.generator.java.FieldModel;
-import org.ops4j.graqulus.generator.java.CompositeModel;
 import org.ops4j.graqulus.generator.trimou.TemplateEngine;
 
 import graphql.language.Document;
@@ -28,9 +29,11 @@ import graphql.language.ScalarTypeDefinition;
 import graphql.language.Type;
 import graphql.language.TypeName;
 import graphql.parser.Parser;
+import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.SchemaPrinter;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import graphql.schema.idl.UnExecutableSchemaGenerator;
 
 public class SchemaPrinterTest {
 
@@ -110,6 +113,12 @@ public class SchemaPrinterTest {
         TemplateEngine templateEngine = new TemplateEngine();
         String javaInterface = templateEngine.renderTemplate("enum", interfaceModel);
         System.out.println(javaInterface);
+    }
+
+    @Test
+    public void shouldMakeUnexecutableSchema() {
+        GraphQLSchema schema = UnExecutableSchemaGenerator.makeUnExecutableSchema(registry);
+        assertThat(schema).isNotNull();
     }
 
     private FieldModel toFieldModel(FieldDefinition fieldDefinition) {
