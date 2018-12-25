@@ -11,7 +11,6 @@ import org.ops4j.graqulus.generator.trimou.TemplateEngine;
 import org.ops4j.graqulus.shared.OperationTypeRegistry;
 
 import graphql.language.FieldDefinition;
-import graphql.language.InterfaceTypeDefinition;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLEnumType;
 import graphql.schema.GraphQLEnumValueDefinition;
@@ -56,7 +55,6 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
         }
         CompositeModel model = new CompositeModel();
         model.setDescription(node.getDescription());
-        model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
         model.setFieldModels(node.getFieldDefinitions().stream()
@@ -73,7 +71,6 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
     private void generateRootOperation(GraphQLObjectType node) {
         CompositeModel model = new CompositeModel();
         model.setDescription(node.getDescription());
-        model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
         model.setFieldModels(node.getFieldDefinitions().stream()
@@ -98,7 +95,6 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
     public TraversalControl visitGraphQLInterfaceType(GraphQLInterfaceType node, TraverserContext<GraphQLType> ctx) {
         CompositeModel model = new CompositeModel();
         model.setDescription(node.getDescription());
-        model.setInterfaceType(node.getDefinition());
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
         model.setFieldModels(node.getFieldDefinitions().stream().map(f -> toFieldModel(f, null)).collect(toList()));
@@ -113,7 +109,6 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
             TraverserContext<GraphQLType> ctx) {
         CompositeModel model = new CompositeModel();
         model.setDescription(node.getDescription());
-        model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
         model.setFieldModels(node.getFieldDefinitions().stream()
@@ -130,7 +125,6 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
     public TraversalControl visitGraphQLUnionType(GraphQLUnionType node, TraverserContext<GraphQLType> ctx) {
         CompositeModel model = new CompositeModel();
         model.setDescription(node.getDescription());
-        model.setInterfaceType(null);
         model.setPackageName(this.context.getConfig().getBasePackage());
         model.setTypeName(node.getName());
         model.setFieldModels(
@@ -169,7 +163,6 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
         FieldDefinition definition = fieldDefinition.getDefinition();
         FieldModel fieldModel = new FieldModel();
         fieldModel.setDescription(fieldDefinition.getDescription());
-        fieldModel.setFieldDefinition(definition);
         fieldModel.setFieldName(typeMapper.toJavaVariable(fieldDefinition.getName()));
         fieldModel.setType(typeMapper.toJavaType(fieldDefinition.getType()));
         fieldModel.setOverrideRequired(isOverride(definition, object));
@@ -217,10 +210,6 @@ public class JavaGeneratingTypeVisitor extends GraphQLTypeVisitorStub {
     }
 
     private boolean hasField(GraphQLOutputType interfaceType, String fieldName) {
-        InterfaceTypeDefinition interfaceDefinition = registry
-                .getType(interfaceType.getName(), InterfaceTypeDefinition.class)
-                .get();
-        return interfaceDefinition.getFieldDefinitions().stream().map(FieldDefinition::getName)
-                .anyMatch(fieldName::equals);
+        return ((GraphQLInterfaceType) interfaceType).getFieldDefinition(fieldName) != null;
     }
 }

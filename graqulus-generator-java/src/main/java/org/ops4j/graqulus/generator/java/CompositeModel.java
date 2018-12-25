@@ -11,13 +11,9 @@ import java.util.TreeSet;
 
 import javax.annotation.Generated;
 
-import graphql.language.InterfaceTypeDefinition;
-
 public class CompositeModel {
 
     private String packageName;
-
-    private InterfaceTypeDefinition interfaceType;
 
     private String typeName;
 
@@ -31,14 +27,6 @@ public class CompositeModel {
 
     public CompositeModel() {
         this.date = ZonedDateTime.now().truncatedTo(SECONDS).format(ISO_OFFSET_DATE_TIME);
-    }
-
-    public InterfaceTypeDefinition getInterfaceType() {
-        return interfaceType;
-    }
-
-    public void setInterfaceType(InterfaceTypeDefinition interfaceType) {
-        this.interfaceType = interfaceType;
     }
 
     public String getTypeName() {

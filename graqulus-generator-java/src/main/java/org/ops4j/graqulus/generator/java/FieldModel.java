@@ -2,25 +2,14 @@ package org.ops4j.graqulus.generator.java;
 
 import java.util.List;
 
-import graphql.language.FieldDefinition;
-
 public class FieldModel {
 
-    private FieldDefinition fieldDefinition;
     private String description;
     private String fieldName;
     private JavaType type;
     private boolean notNullRequired;
     private boolean overrideRequired;
     private List<InputValueModel> inputValues;
-
-    public FieldDefinition getFieldDefinition() {
-        return fieldDefinition;
-    }
-
-    public void setFieldDefinition(FieldDefinition fieldDefinition) {
-        this.fieldDefinition = fieldDefinition;
-    }
 
     public String getFieldName() {
         return fieldName;

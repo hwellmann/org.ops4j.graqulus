@@ -75,7 +75,6 @@ public class SchemaPrinterTest {
         InterfaceTypeDefinition character = registry.getType("Character", InterfaceTypeDefinition.class).get();
 
         CompositeModel interfaceModel = new CompositeModel();
-        interfaceModel.setInterfaceType(character);
         interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
         interfaceModel
@@ -91,7 +90,6 @@ public class SchemaPrinterTest {
         ObjectTypeDefinition character = registry.getType("Droid", ObjectTypeDefinition.class).get();
 
         CompositeModel interfaceModel = new CompositeModel();
-        interfaceModel.setInterfaceType(null);
         interfaceModel.setPackageName("org.ops4j.graqulus.starwars");
         interfaceModel.setTypeName(character.getName());
         interfaceModel
@@ -126,7 +124,6 @@ public class SchemaPrinterTest {
 
     private FieldModel toFieldModel(FieldDefinition fieldDefinition) {
         FieldModel fieldModel = new FieldModel();
-        fieldModel.setFieldDefinition(fieldDefinition);
         fieldModel.setFieldName(fieldDefinition.getName());
         fieldModel.setType(getJavaType(fieldDefinition.getType()));
         return fieldModel;
