@@ -13,19 +13,15 @@ import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.AnnotatedMethod;
+import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.DefinitionException;
 import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Inject;
 
-import org.dataloader.DataLoader;
-import org.dataloader.DataLoaderRegistry;
-import org.ops4j.graqulus.cdi.api.ExecutionRoot;
 import org.ops4j.graqulus.cdi.api.ExecutionRootFactory;
 import org.ops4j.graqulus.cdi.api.Schema;
 
-import graphql.GraphQL;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.TypeTraverser;
 import graphql.schema.idl.RuntimeWiring;
@@ -36,7 +32,7 @@ import graphql.schema.idl.UnExecutableSchemaGenerator;
 import graphql.schema.idl.errors.SchemaProblem;
 
 @ApplicationScoped
-public class GraqulusExecutor implements ExecutionRootFactory {
+public class SchemaBuilder {
 
     @Inject
     private ClassScanResult scanResult;
@@ -91,10 +87,9 @@ public class GraqulusExecutor implements ExecutionRootFactory {
         return annotatedType.isAnnotationPresent(Schema.class);
     }
 
-    @Override
-    public ExecutionRoot newRoot() {
-        GraphQL root = GraphQL.newGraphQL(executableSchema).build();
-        return new ExecutionRootImpl(root, buildDataLoaderRegistry());
+    @Produces
+    public ExecutionRootFactory executionRoot() {
+        return new ExecutionRootFactoryImpl(executableSchema);
     }
 
     private void buildTypeDefinitionRegistry() {
@@ -139,21 +134,5 @@ public class GraqulusExecutor implements ExecutionRootFactory {
 
     private String toCommaList(List<AnnotatedType<?>> annotatedTypes) {
         return annotatedTypes.stream().map(t -> t.getJavaClass().getName()).collect(joining(", "));
-    }
-
-    private DataLoaderRegistry buildDataLoaderRegistry() {
-        DataLoaderRegistry dataLoaderRegistry = new DataLoaderRegistry();
-        scanResult.getBatchLoaderMethods().forEach((type, method) ->
-            dataLoaderRegistry.register(type, buildDataLoader(method)));
-        return dataLoaderRegistry;
-    }
-
-    private DataLoader<?, ?> buildDataLoader(AnnotatedMethod<?> method) {
-        Object service = instance.select(method.getDeclaringType().getJavaClass()).get();
-        if (method.getParameters().size() > 1) {
-            return DataLoader.newDataLoader(new AsyncBatchLoaderWithContext<>(service, method.getJavaMember()));
-        } else {
-            return DataLoader.newDataLoader(new AsyncBatchLoader<>(service, method.getJavaMember()));
-        }
     }
 }

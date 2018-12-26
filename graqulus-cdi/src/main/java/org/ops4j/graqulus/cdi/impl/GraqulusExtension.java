@@ -62,7 +62,7 @@ public class GraqulusExtension implements Extension {
     }
 
     void afterDeploymentValidation(@Observes AfterDeploymentValidation event, BeanManager beanManager) {
-        GraqulusExecutor executor = beanManager.createInstance().select(GraqulusExecutor.class).get();
+        SchemaBuilder executor = beanManager.createInstance().select(SchemaBuilder.class).get();
         List<Exception> deploymentProblems = executor.validateSchemaAndWiring();
         deploymentProblems.stream().forEach(event::addDeploymentProblem);
     }
