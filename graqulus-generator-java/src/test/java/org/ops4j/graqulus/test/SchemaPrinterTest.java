@@ -119,7 +119,7 @@ public class SchemaPrinterTest {
     @Test
     public void shouldMakeUnexecutableSchema() {
         GraphQLSchema schema = UnExecutableSchemaGenerator.makeUnExecutableSchema(registry);
-        assertThat(schema).isNotNull();
+        assertThat(schema).isNull();
     }
 
     private FieldModel toFieldModel(FieldDefinition fieldDefinition) {
